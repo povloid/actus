@@ -21,6 +21,14 @@
 (defn get-param [{params :params} k default]
   (let [{n k :or {n default}} params] n))
 
+
+(defn js-text-compressor [text]
+  "Сжимает текст в одну строчку"
+  (-> text
+      (clojure.string/replace #"\n" " ")
+      (clojure.string/replace #"\s+" " ")
+      ))
+
 (defn js-e-set-1 [id]
   (str " this.form.elements['" (name id) "'].value = 1;"))
 
