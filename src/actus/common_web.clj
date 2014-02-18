@@ -48,31 +48,32 @@
         {{page p-page size p-size :or {page "1" size "10"}} :params }  request
 
         ]
-    [:div {:id paginator-id :class "ui-widget-header ui-corner-all" }
+    [:div {:id paginator-id}
 
-     (label {} page-id "страница:")
+     (label {} page-id " страница:")
 
-     [:input {:type "button" :value "<<" :onclick (str (js-e-set-1 page-id) onclick)}]
-     [:input {:type "button" :value "<" :onclick (str (js-e-dec page-id) onclick)}]
+     [:input {:type "button" :class"btn btn-default" :value "<<" :onclick (str (js-e-set-1 page-id) onclick)}]
+     [:input {:type "button" :class"btn btn-default" :value "<" :onclick (str (js-e-dec page-id) onclick)}]
 
      (text-field {:id page-id
                   :type "number" :pattern "\\d+" :placeholder "страница"
                   :onkeydown (str "if (event.keyCode == 13){" onclick  ";return false;}")
-                  :class "ui-button ui-widget ui-state-default ui-corner-all"
-                  :style "width: 50px"}
+                  :style "width: 100px"
+                  :class "btn"}
                  p-page page)
 
-     [:input {:type "button" :value ">" :onclick (str (js-e-inc page-id) onclick)}]
+     [:input {:type "button" :class"btn btn-default" 
+              :value ">" :onclick (str (js-e-inc page-id) onclick)}]
 
-     (label {} size-id "размер:")
+     (label {} size-id " размер:")
 
-     (drop-down {:id size-id
+
+     (drop-down {:id size-id :class "btn btn-default dropdown-toggle"
                  :onchange onclick
-                 :class "ui-button ui-widget"
                  }
                 p-size [5 10 15 20 50 100 1000] (Integer/parseInt size))
 
-     [:div {:style "display: inline;"} " "]
+     [:div {:style "display: inline;"}]
      ]))
 
 (defn columm-sorter [e-group-id label-text request columns p-sort-column-name p-sort-column-type onclick]
@@ -83,14 +84,14 @@
      (label {} sorter-id label-text)
      (drop-down {:id sorter-id
                  :onchange onclick
-                 :class "ui-button ui-widget"}
+                 :class "btn btn-default dropdown-toggle"}
                 p-sort-column-name
                 columns
                 (keyword sort-column))
 
      (drop-down {:id sorter-id
                  :onchange onclick
-                 :class "ui-button ui-widget"}
+                 :class "btn btn-default dropdown-toggle"}
                 p-sort-column-type
                 [["воз." :ASC] ["уб." :DESC]]
                 (keyword sort-type))
@@ -123,22 +124,22 @@
 
 (defn html-table [{e-group-id :e-group-id columns :columns items :items}]
   "Генерирует HTML таблицу"
-  [:table {:id (create-sub-e-group-id e-group-id :table)
-           :class "tg" :width "100%"}
-
-   [:tr
-    (for [column columns]
-      [:th (column :text)])]
-
-   (for [item  (map #(assoc % :css-c-type %2) items (cycle ["0" "1"]))  ]
+  [:div {:class "bs-example table-responsive"}
+   [:table {:id (create-sub-e-group-id e-group-id :table)
+            :class "table table-striped table-hover" :width "100%"}
+    [:thead
      [:tr
-      (for [{getfn :getfn align :align style :style
-             :or {align "l"} ;; Значения по умолчанию
-             } columns]
-        [:td {:class (str "tg-" align "-" (item  :css-c-type)) :style style}
-         (getfn item)])
-      ])
-   ]
+      (for [column columns]
+        [:th (column :text)])]]
+
+    (for [item
+          ;;(map #(assoc % :css-c-type %2) items (cycle ["0" "1"])) ;; Код чередования для старого CSS (чередование цвета)
+          items]
+      [:tr
+       (for [{getfn :getfn style :style} columns]
+         [:td {:style style}  (getfn item)])
+       ])
+    ]]
   )
 
 
@@ -183,7 +184,7 @@
                             (reduce #(conj % [(%2 :text) (%2 :field)])
                                     [["Нет" :NONE]] ;; Добавляем отключающий пункт первым
                                     ))
-
+        
         ;; Модель описание сортировщиков
         sorters-describe (->> columns
                               (filter :sorter) ;;TODO: тут можно оптимизировать 1
@@ -194,29 +195,31 @@
                                       []))
         ]
 
-    [:div
-     ;; Формируем верхнюю панель управления таблицей
-     (conj
-      (paginator (create-sub-e-group-id e-group-id :1) request p-page p-size " this.form.submit();")
-      (column-sorters e-group-id #(str % " по ") request sorted-columns (filter coll? sorters-describe) " this.form.submit();")
+2    [:div {:class "panel panel-default"}
+     [:div {:class "panel-heading"}
+      ;; Формируем верхнюю панель управления таблицей
+      (conj
+       (paginator (create-sub-e-group-id e-group-id :1) request p-page p-size " this.form.submit();")
+       " "
+       (column-sorters e-group-id #(str " " % " по: ") request sorted-columns (filter coll? sorters-describe) " this.form.submit();")
 
-      ;; Одиночные варианты - Возможно в будущем пригодится
-      ;;(columm-sorter e-group-id "1 по" request [["Нет" :NONE]  ["№" :id] ["Дата" :cdate]] :scol1 :scolt1 nil)
-      ;;(columm-sorter e-group-id "2 по" request [["Нет" :NONE]  ["№" :id] ["Дата" :cdate]] :scol2 :scolt2 nil)
+       ;; Одиночные варианты - Возможно в будущем пригодится
+       ;;(columm-sorter e-group-id "1 по" request [["Нет" :NONE]  ["№" :id] ["Дата" :cdate]] :scol1 :scolt1 nil)
+       ;;(columm-sorter e-group-id "2 по" request [["Нет" :NONE]  ["№" :id] ["Дата" :cdate]] :scol2 :scolt2 nil)
 
-      )
+       )]
+     [:div {:class "panel-body"}
+      ;; Формируем таблицу
+      (-> table-describe
+          (assoc :e-group-id e-group-id)
+          (assoc :items (-> items
+                            (cdbsql/common-page (dec (Integer/parseInt (get-param request p-page "1")))
+                                                (Integer/parseInt (get-param request p-size "10")))
 
-     ;; Формируем таблицу
-     (-> table-describe
-         (assoc :e-group-id e-group-id)
-         (assoc :items (-> items
-                           (cdbsql/common-page (dec (Integer/parseInt (get-param request p-page "1")))
-                                               (Integer/parseInt (get-param request p-size "10")))
+                            (add-sorted-predicates sorters-describe request)
 
-                           (add-sorted-predicates sorters-describe request)
-
-                           cdbsql/common-exec))
-         html-table)
+                            cdbsql/common-exec))
+          html-table)]
      ]
     ))
 
@@ -225,3 +228,8 @@
 (defn items-do-fn [{items :items :as table-describe} f]
   (assoc table-describe
     :items (f items)))
+
+
+
+
+;; WEB FORMS
