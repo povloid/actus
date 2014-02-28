@@ -195,7 +195,7 @@
                                       []))
         ]
 
-2    [:div {:class "panel panel-default"}
+    [:div {:class "panel panel-default"}
      [:div {:class "panel-heading"}
       ;; Формируем верхнюю панель управления таблицей
       (conj
@@ -230,6 +230,70 @@
     :items (f items)))
 
 
+;; table buttons
+
+
+;; MENU -------------------------------------------------------------------------------------------------------------------
+
+(defn html-navbar-link [text url]
+  [:li [:a {:href url} text ]])
+
+(defn html-navbar-menu-item [text url]
+  [:li [:a {:href url} text ]])
+
+(def html-navbar-menu-devider-------------------------------
+  [:li {:class "divider"} ])
+
+(defn html-navbar-menu-header [text]
+  [:li {:class "dropdown-header"} text])
+
+(defn html-navbar-menu [text sub-items]
+  [:li {:class "dropdown"}
+   [:a {:href "#" :class "dropdown-toggle" :data-toggle "dropdown"} text [:b {:class "caret"} ]]
+   (reduce conj [:ul {:class "dropdown-menu"} ] sub-items)
+   ]
+  )
+
+
+(defn html-navbar [header_text
+                   header_url
+
+                   items-left
+
+                   any-middle-elements
+
+                   items-right
+                   ]
+
+  [:div {:class "navbar navbar-default navbar-fixed-top"} ;; 1. navbar
+   [:div {:class "container"} ;; 2. container
+
+    ;; заголовок / ссылка на домашнюю страницу ff -------------------------------------------------------------------------
+    [:div {:class "navbar-header"} ;; заголовок
+     [:button {:type "button" :class "navbar-toggle" :data-toggle "collapse" :data-target ".navbar-responsive-collapse"}
+      [:span {:class "icon-bar"}]
+      [:span {:class "icon-bar"}]
+      [:span {:class "icon-bar"}]
+      ]
+     [:a {:class "navbar-brand" :href header_url} header_text]
+     ] ;; заголовок ...
+
+    ;; Меню и прочие элементы
+    (-> [:div {:class "navbar-collapse collapse navbar-responsive-collapse"}]
+        (conj (reduce conj [:ul {:class "nav navbar-nav"}] items-left))
+
+        (into any-middle-elements)
+
+        (conj (reduce conj [:ul {:class "nav navbar-nav  navbar-right"}] items-right))
+        )
+    ;;
+    ] ;; 2. container
+   ] ;; 1. navbar
+  )
+
+;; MENU ...
 
 
 ;; WEB FORMS
+
+
