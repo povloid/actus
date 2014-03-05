@@ -52,8 +52,8 @@
 
      (label {} page-id " страница:")
 
-     [:input {:type "button" :class"btn btn-default" :value "<<" :onclick (str (js-e-set-1 page-id) onclick)}]
-     [:input {:type "button" :class"btn btn-default" :value "<" :onclick (str (js-e-dec page-id) onclick)}]
+     [:input {:type "button" :class "btn btn-default" :value "<<" :onclick (str (js-e-set-1 page-id) onclick)}]
+     [:input {:type "button" :class "btn btn-default" :value "<" :onclick (str (js-e-dec page-id) onclick)}]
 
      (text-field {:id page-id
                   :type "number" :pattern "\\d+" :placeholder "страница"
@@ -295,9 +295,9 @@
 
 
 ;; WEB FORMS
-(defn actus-form [{{actus :actus :as params} :params :as request}
-                  actus-fns
-                  render-form-fm]
+(defn actus-in-form [{{actus :actus :as params} :params :as request}
+                     actus-fns
+                     render-form-fm]
 
   ;;(println "\n\n" params)
 
@@ -337,3 +337,25 @@
       )
     )
   )
+
+
+(defn actus-form-to [id [method action] body]
+  [:div
+   (javascript-tag (str "window.onload=function(){document.forms['" (name id) "'].actus.value=null;}"))
+   ;;(javascript-tag "document.forms['form1'].actus.value=null;") ;; неработает в ишаке
+   (into (form-to {:id id} [method action]
+                  (hidden-field {} :actus nil)
+                  )
+         body)
+         ]
+  )
+
+
+(defn actus-button [actus value]
+  [:input {:type "button"
+           :class "btn btn-default" :value value
+           :onclick (str "this.form.elements['actus'].value='" (name actus) "';this.form.submit();")}])
+
+
+
+
