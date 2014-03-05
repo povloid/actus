@@ -230,7 +230,6 @@
 (defn add-column [{columns :columns :as table-describe} col-describe]
   (assoc table-describe :columns (conj columns col-describe)))
 
-
 (defn items-do-fn [{items :items :as table-describe} f]
   (assoc table-describe :items (f items)))
 
@@ -349,11 +348,11 @@
    (javascript-tag (str "window.onload=function(){document.forms['" (name id) "'].actus.value=null;}"))
    ;;(javascript-tag "document.forms['form1'].actus.value=null;") ;; неработает в ишаке
    (into (form-to {:id id} [method action]
-                  (hidden-field {} :actus nil)
-                  )
+                  (hidden-field {} :actus nil))
          body)
    ]
   )
+
 
 (defn actus-button [actus value]
   [:input {:type "button"
@@ -366,6 +365,5 @@
     (into [input (assoc attrs :onclick (->> (map #(str "this.form.elements['" (name %) "'].value='" (params %) "';") (keys params))
                                             (apply str)
                                             (#(str % onclick))
-                                           ))
-           ]
+                                            ))]
           other)))
