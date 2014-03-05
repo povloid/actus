@@ -295,19 +295,45 @@
 
 
 ;; WEB FORMS
-
 (defn actus-form [{{actus :actus :as params} :params :as request}
                   actus-fns
                   render-form-fm]
-  (println "\n\n" params)
-  
+
+  ;;(println "\n\n" params)
+
   (let [actus-fn (actus-fns (keyword actus))]
     (if (nil? actus-fn)
       (render-form-fm request) ;; render form request
-      (let [[tag result] (actus-fn request)]
-        (cond (= :form tag) (render-form-fm result) ;; render form request
-              ;; (= :forvard tag)
-              ;; (= :redirect tag)
-              :else result)))
+      #_(html5 [:h1 "Не найден actus: " (keyword actus)]
+               [:br]
+               [:h2 "Результат:"]
+               [:br]
+               (str request) )
+
+      (let [result (actus-fn request)]
+        (if (and (or (vector? result)
+                     (list? result))
+                 (keyword? (first result)))
+
+          ;; Если условие проходит то считаем что это action
+          (let [[tag result] result]
+            (cond (= :form tag) (render-form-fm result) ;; render form request
+                  (= :response tag) (ring.util.response/response result)
+                  (= :redirect tag) (ring.util.response/redirect result)
+                  :else (html5 [:h1 "Не найден tag: " tag ]
+                               [:br]
+                               [:h2 "Результат:"]
+                               [:br]
+                               (str [tag result]) )))
+
+          ;; Иначе выводим то что есть как строку
+          (html5 [:h1 "Результат не имеет структуры вида [:tag some-result] или [:tag some-result]."]
+                 [:br]
+                 [:h2 "Получено только:"]
+                 [:br]
+                 (str result))
+          )
+        )
+      )
     )
   )
