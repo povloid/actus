@@ -224,10 +224,15 @@
     ))
 
 
+(defn add-columns [{columns :columns :as table-describe} cols-describes]
+  (assoc table-describe :columns (into columns cols-describes)))
+
+(defn add-column [{columns :columns :as table-describe} col-describe]
+  (assoc table-describe :columns (conj columns col-describe)))
+
 
 (defn items-do-fn [{items :items :as table-describe} f]
-  (assoc table-describe
-    :items (f items)))
+  (assoc table-describe :items (f items)))
 
 
 ;; table buttons
@@ -347,15 +352,20 @@
                   (hidden-field {} :actus nil)
                   )
          body)
-         ]
+   ]
   )
-
 
 (defn actus-button [actus value]
   [:input {:type "button"
            :class "btn btn-default" :value value
            :onclick (str "this.form.elements['actus'].value='" (name actus) "';this.form.submit();")}])
 
-
-
-
+(defn actus-button-wapl [actus value params]
+  (let [[input attrs & other] (actus-button actus value)
+        onclick (:onclick attrs)]
+    (into [input (assoc attrs :onclick (->> (map #(str "this.form.elements['" (name %) "'].value='" (params %) "';") (keys params))
+                                            (apply str)
+                                            (#(str % onclick))
+                                           ))
+           ]
+          other)))
