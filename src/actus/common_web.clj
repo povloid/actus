@@ -62,7 +62,7 @@
                   :class "btn"}
                  p-page page)
 
-     [:input {:type "button" :class"btn btn-default" 
+     [:input {:type "button" :class"btn btn-default"
               :value ">" :onclick (str (js-e-inc page-id) onclick)}]
 
      (label {} size-id " размер:")
@@ -184,7 +184,7 @@
                             (reduce #(conj % [(%2 :text) (%2 :field)])
                                     [["Нет" :NONE]] ;; Добавляем отключающий пункт первым
                                     ))
-        
+
         ;; Модель описание сортировщиков
         sorters-describe (->> columns
                               (filter :sorter) ;;TODO: тут можно оптимизировать 1
@@ -296,4 +296,18 @@
 
 ;; WEB FORMS
 
-
+(defn actus-form [{{actus :actus :as params} :params :as request}
+                  actus-fns
+                  render-form-fm]
+  (println "\n\n" params)
+  
+  (let [actus-fn (actus-fns (keyword actus))]
+    (if (nil? actus-fn)
+      (render-form-fm request) ;; render form request
+      (let [[tag result] (actus-fn request)]
+        (cond (= :form tag) (render-form-fm result) ;; render form request
+              ;; (= :forvard tag)
+              ;; (= :redirect tag)
+              :else result)))
+    )
+  )
