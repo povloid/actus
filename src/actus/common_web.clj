@@ -4,6 +4,7 @@
   (:use hiccup.page)
   (:use hiccup.form)
   (:use hiccup.element)
+  (:use hiccup.util)
 
   (:require [net.cgrand.enlive-html :as h]
             [actus.common-db-sql :as cdbsql]
@@ -367,3 +368,19 @@
                                             (#(str % onclick))
                                             ))]
           other)))
+ 
+;; :params
+;; :uri "/content"
+;; :query-string "actus=action3&id=&table_news_0_page=2&table_news_0_size=5&table_news_0_sortcol_id=id&table_news_0_sorttype_id=DESC&table_news_0_sortcol_cdate=NONE&table_news_0_sorttype_cdate=ASC"
+
+(defn go-to-url [{{actus :actus :as params} :params uri :uri query-string :query-string}
+                 url-string add-params]
+  (letfn [(actus-str-fn [x] (str "actus=" (name x)))]
+    (let [actus-str (actus-str-fn actus)
+          new-query-string (clojure.string/replace query-string (re-pattern actus-str) (str "last_" actus-str))]
+      ;; (url "/group/" 4 "/products" {:page 9})
+      (str (url url-string
+                (->> {:ret-url (str uri "?" new-query-string)}
+                     (merge add-params) )
+                ))
+      )))
