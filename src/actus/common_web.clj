@@ -391,3 +391,9 @@
                      (merge add-params) )
                 ))
       )))
+
+
+(defn add-params-to-url [url-str add-params]
+  (if (empty? add-params)
+    url-str
+    (str url-str "&" (url-encode add-params))))
