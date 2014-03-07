@@ -23,12 +23,31 @@
   (let [{n k :or {n default}} params] n))
 
 
-(defn js-text-compressor [text]
-  "Сжимает текст в одну строчку"
+(defn js-text-compressor 
+  "Сжимает текст в одну строчку. Убирает пробелы и переносы, для коментариев надо применять /*....*/"
+  [text]
   (-> text
       (clojure.string/replace #"\n" " ")
       (clojure.string/replace #"\s+" " ")
       ))
+
+(defn js-text-compressor-map-str 
+  "[ \" alert   ('\" :key  \"')  ;  \" ... ] => [ \"alert('\" :key  \"');\" ... ]"
+  [x]
+  (map
+   #(if (string? %) (js-text-compressor %) %)
+   x))
+
+(defn js-text-compressor-coll-as-str 
+  "(js-text-compressor-coll-as-str [ \"alert('\" :key  \"');\" ... ] {:key \"!!!\", ... } ) 
+=> \"alert('!!!');....\" "
+  [c m]
+  (->> (replace m c)
+       (apply str)))
+
+
+
+
 
 (defn js-e-set-1 [id]
   (str " this.form.elements['" (name id) "'].value = 1;"))
@@ -39,8 +58,9 @@
 (defn js-e-dec [id]
   (str " v = this.form.elements['" (name id) "'].value; if(v > 1) this.form.elements['" (name id) "'].value = parseInt(v) - 1;"))
 
-(defn paginator [e-group-id request p-page p-size onclick]
+(defn paginator 
   "Пэйджер"
+  [e-group-id request p-page p-size onclick]
   (let [
         paginator-id (create-sub-e-group-id e-group-id :paginator)
         page-id (create-sub-e-group-id paginator-id :page)
@@ -123,8 +143,9 @@
 
 
 
-(defn html-table [{e-group-id :e-group-id columns :columns items :items}]
+(defn html-table 
   "Генерирует HTML таблицу"
+  [{e-group-id :e-group-id columns :columns items :items}]
   [:div {:class "bs-example table-responsive"}
    [:table {:id (create-sub-e-group-id e-group-id :table)
             :class "table table-striped table-hover" :width "100%"}
@@ -344,29 +365,43 @@
   )
 
 
-(defn actus-form-to [id [method action] body]
-  [:div
 
-   ;;$(function() {alert('!1');});
-   ;;$(function() {alert('!2');});
-   ;;(javascript-tag "document.forms['form1'].actus.value=null;") ;; неработает в ишаке
-   ;;(javascript-tag (str "window.onload=function(){document.forms['" (name id) "'].actus.value=null;}"))
-   (javascript-tag (str "$(function(){
 
-document.forms['" (name id) "'].actus.value=null;
+(def actus-form-head
 
-$('#" (name id)  "').focusin(function(){
-  document.forms['" (name id) "'].actus.value=null;
+  "Заголовок, вынесенный в def для оптимизации по скорости"
+  ;;$(function() {alert('!1');});
+  ;;$(function() {alert('!2');});
+  ;;document.forms['form1'].actus.value=null; /* неработает в ишаке */
+  ;;window.onload=function(){document.forms['" (name id) "'].actus.value=null;}
+
+  (js-text-compressor-map-str
+   (list "
+
+$(function(){
+
+document.forms['" :form-id "'].actus.value=null;
+
+$('#" :form-id  "').focusin(function(){
+  document.forms['" :form-id "'].actus.value=null;
 });
 
 $(window).load(function () {
-  //alert('манипуляции с готовой страницей');
+  /* alert('манипуляции с готовой страницей'); */
 });
 
-//alert('!');
+/* alert('!'); */
 
-})"))
-   
+})
+
+")))
+
+
+(defn actus-form-to [id [method action] body]
+  [:div
+   (javascript-tag (js-text-compressor-coll-as-str
+                    actus-form-head {:form-id (name id)}))
+
    (-> (form-to {:id id} [method action]
                 (hidden-field {} :actus nil))
        (into body)
