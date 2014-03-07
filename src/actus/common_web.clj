@@ -346,11 +346,31 @@
 
 (defn actus-form-to [id [method action] body]
   [:div
-   (javascript-tag (str "window.onload=function(){document.forms['" (name id) "'].actus.value=null;}"))
+
+   ;;$(function() {alert('!1');});
+   ;;$(function() {alert('!2');});
    ;;(javascript-tag "document.forms['form1'].actus.value=null;") ;; неработает в ишаке
-   (into (form-to {:id id} [method action]
-                  (hidden-field {} :actus nil))
-         body)
+   ;;(javascript-tag (str "window.onload=function(){document.forms['" (name id) "'].actus.value=null;}"))
+   (javascript-tag (str "$(function(){
+
+document.forms['" (name id) "'].actus.value=null;
+
+$('#" (name id)  "').focusin(function(){
+  document.forms['" (name id) "'].actus.value=null;
+});
+
+$(window).load(function () {
+  //alert('манипуляции с готовой страницей');
+});
+
+//alert('!');
+
+})"))
+   
+   (-> (form-to {:id id} [method action]
+                (hidden-field {} :actus nil))
+       (into body)
+       )
    ]
   )
 
