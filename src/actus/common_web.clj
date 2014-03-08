@@ -479,13 +479,22 @@ $(window).load(function () {
   (into [:div {:class "row"} ] body) )
 
 (defmacro div-col-lg [cols & body]
-  (into [:div {:class (str "col-lg-" cols)} ] body) )
+  (into [:div {:class `(str "col-lg-" ~cols)} ] body) )
 
 (defmacro div-well_bs-component [& body]
   (into [:div {:class "well bs-component"} ] body) )
 
 (defmacro div-form-horizontal [& body]
   (into [:div {:class "form-horizontal"} ] body) )
+
+
+(defn page-row- [cols & body]
+  (into (div-col-lg cols) body))
+
+(defmacro page-row [col-lg & body]
+  (apply page-row- (into [col-lg] body)))
+
+
 
 (defn div-form- [legend & body]
   (div-well_bs-component
@@ -495,19 +504,23 @@ $(window).load(function () {
 (defmacro div-form-1 [legend & body]
   (apply div-form- (into [legend] body)))
 
+(defmacro page-form-1 [legend col-lg  & body]
+  (page-row- col-lg
+            (apply div-form- (into [legend] body))))
+
+
 
 (defmacro div-form-group [label col-lg-label col-lg-input
                           [_ {id :id} :as input]]
 
   [:div {:class "form-group"}
-   [:label {:for id :class (str "col-lg-" col-lg-label " control-label")} label]
-   (conj [:div {:class (str "col-lg-" col-lg-input)}] input)
+   [:label {:for id :class `(str "col-lg-" ~col-lg-label " control-label")} label]
+   (conj [:div {:class `(str "col-lg-" ~col-lg-input)}] input)
    ;;[:input {:type "text" :class "form-control" :id "inputEmail" :placeholder "Email"}]
    ])
 
 
 ;; MESSAGE BOXES
-
 (defn alert- [alert-type col-lg message-body]
   (let [a-type  (or (alert-type {:warning "alert-warning"
                                  :danger "alert-danger"
@@ -523,6 +536,10 @@ $(window).load(function () {
    (div-row
     (alert- alert-type 12 message-body)
     )))
+
+
+
+
 
 
 
