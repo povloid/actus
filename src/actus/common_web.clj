@@ -23,7 +23,7 @@
   (let [{n k :or {n default}} params] n))
 
 
-(defn js-text-compressor 
+(defn js-text-compressor
   "Сжимает текст в одну строчку. Убирает пробелы и переносы, для коментариев надо применять /*....*/"
   [text]
   (-> text
@@ -31,15 +31,15 @@
       (clojure.string/replace #"\s+" " ")
       ))
 
-(defn js-text-compressor-map-str 
+(defn js-text-compressor-map-str
   "[ \" alert   ('\" :key  \"')  ;  \" ... ] => [ \"alert('\" :key  \"');\" ... ]"
   [x]
   (map
    #(if (string? %) (js-text-compressor %) %)
    x))
 
-(defn js-text-compressor-coll-as-str 
-  "(js-text-compressor-coll-as-str [ \"alert('\" :key  \"');\" ... ] {:key \"!!!\", ... } ) 
+(defn js-text-compressor-coll-as-str
+  "(js-text-compressor-coll-as-str [ \"alert('\" :key  \"');\" ... ] {:key \"!!!\", ... } )
 => \"alert('!!!');....\" "
   [c m]
   (->> (replace m c)
@@ -58,7 +58,7 @@
 (defn js-e-dec [id]
   (str " v = this.form.elements['" (name id) "'].value; if(v > 1) this.form.elements['" (name id) "'].value = parseInt(v) - 1;"))
 
-(defn paginator 
+(defn paginator
   "Пэйджер"
   [e-group-id request p-page p-size onclick]
   (let [
@@ -143,7 +143,7 @@
 
 
 
-(defn html-table 
+(defn html-table
   "Генерирует HTML таблицу"
   [{e-group-id :e-group-id columns :columns items :items}]
   [:div {:class "bs-example table-responsive"}
@@ -448,7 +448,99 @@ $(window).load(function () {
       )))
 
 
-(defn add-params-to-url [url-str add-params]
+(defn add-params-to-url
+  "Добавляет парамтры в url или списка {} где есть уже другие параметры"
+  [url-str add-params]
   (if (empty? add-params)
     url-str
     (str url-str "&" (url-encode add-params))))
+
+
+
+
+
+;; INPUT ELEMENTS BEGIN ---------------------------------------------------------------------------
+
+(defn get-parametr [request p-name]
+  (-> request :params p-name))
+
+(defn a-hidden-field [request p-name]
+  (hidden-field {} p-name (get-parametr request p-name)))
+
+
+
+
+;; INPUT ELEMENTS END -----------------------------------------------------------------------------
+
+(defmacro div-bs-docs-section [& body]
+  (into [:div {:class "bs-docs-section"} ] body) )
+
+(defmacro div-row [& body]
+  (into [:div {:class "row"} ] body) )
+
+(defmacro div-col-lg [cols & body]
+  (into [:div {:class (str "col-lg-" cols)} ] body) )
+
+(defmacro div-well_bs-component [& body]
+  (into [:div {:class "well bs-component"} ] body) )
+
+(defmacro div-form-horizontal [& body]
+  (into [:div {:class "form-horizontal"} ] body) )
+
+(defn div-form- [legend & body]
+  (div-well_bs-component
+   (div-form-horizontal
+    (into [:fieldset  [:legend legend]] body) )))
+
+(defmacro div-form-1 [legend & body]
+  (apply div-form- (into [legend] body)))
+
+
+(defmacro div-form-group [label col-lg-label col-lg-input
+                          [_ {id :id} :as input]]
+
+  [:div {:class "form-group"}
+   [:label {:for id :class (str "col-lg-" col-lg-label " control-label")} label]
+   (conj [:div {:class (str "col-lg-" col-lg-input)}] input)
+   ;;[:input {:type "text" :class "form-control" :id "inputEmail" :placeholder "Email"}]
+   ])
+
+
+;; MESSAGE BOXES
+
+(defn alert- [alert-type col-lg message-body]
+  (let [a-type  (or (alert-type {:warning "alert-warning"
+                                 :danger "alert-danger"
+                                 :success "alert-success"
+                                 :info "alert-info"}) "alert-info") ]
+    (div-col-lg col-lg
+                [:div {:class (str "alert alert-dismissable " a-type)}
+                 [:button {:type "button" :class "close" :data-dismiss "alert"} "x"]
+                 message-body])))
+
+(defmacro alert-page [alert-type message-body]
+  (div-bs-docs-section
+   (div-row
+    (alert- alert-type 12 message-body)
+    )))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;; end
