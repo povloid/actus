@@ -85,7 +85,7 @@
                   :class "btn"}
                  p-page page)
 
-     [:input {:type "button" :class"btn btn-default"
+     [:input {:type "button" :class "btn btn-default"
               :value ">" :onclick (str (js-e-inc page-id) onclick)}]
 
      (label {} size-id " размер:")
@@ -493,6 +493,19 @@ $(window).load(function () {
 
 ;; INPUT ELEMENTS END -----------------------------------------------------------------------------
 
+
+(defn actus-text-field [params attrs id default-value]
+  (let [{value id :or {value default-value}} params]
+    (text-field attrs id value)))
+
+
+
+
+
+
+
+
+
 ;; LAYOUT -----------------------------------------------
 
 (defmacro div-bs-docs-section [& body]
@@ -570,6 +583,8 @@ $(window).load(function () {
    (div-row
     (alert- alert-type 12 message-body)
     )))
+
+
 
 
 
