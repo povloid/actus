@@ -12,12 +12,12 @@
 
 
 
-(declare alert-)
+(declare alert- alert-page)
 
 
 ;; ************************************************************************************************
 ;; HTML ELEMENTS
-
+   
 (defn create-sub-e-group-id [e-group-id id]
   (keyword (str (name e-group-id) "_" (name id))))
 
@@ -493,6 +493,9 @@ $(window).load(function () {
 
 ;; INPUT ELEMENTS END -----------------------------------------------------------------------------
 
+(defn actus-hidden-field [params attrs id default-value]
+  (let [{value id :or {value default-value}} params]
+    (hidden-field attrs id value)))
 
 (defn actus-text-field [params attrs id default-value]
   (let [{value id :or {value default-value}} params]
