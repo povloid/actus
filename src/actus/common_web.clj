@@ -12,6 +12,8 @@
 
 
 
+(declare alert-)
+
 
 ;; ************************************************************************************************
 ;; HTML ELEMENTS
@@ -397,13 +399,35 @@ $(window).load(function () {
 ")))
 
 
-(defn actus-form-to [id [method action] body]
+(defn actus-add-alert
+  "Добавляет сообщение в массив сообщений по ключу :actus-alerts"
+  [{actus-alerts :actus-alerts :or {actus-alerts []} :as request}
+   alert-type message]
+  (assoc request :actus-alerts (conj actus-alerts [alert-type message])))
+
+(defn actus-add-e-has
+  "Подсветка элемента по ключу id"
+  [{actus-has-es :actus-has-es :or {actus-has-es {}} :as request}
+   id has-es-type]
+  (assoc request :actus-has-es (assoc actus-has-es id has-es-type)))
+
+
+(defn actus-form-to [request id [method action] body]
   [:div
    (javascript-tag (js-text-compressor-coll-as-str
                     actus-form-head {:form-id (name id)}))
 
    (-> (form-to {:id id} [method action]
                 (hidden-field {} :actus nil))
+
+       (into (->> request :actus-alerts
+                  (map #(let [[k message] %]
+                          (alert-page k message)
+                          ))
+                  ))
+
+       ;;(conj (alert-page :info "!!!!!!!!!!!!!!!"))
+
        (into body)
        )
    ]
@@ -467,26 +491,26 @@ $(window).load(function () {
 (defn a-hidden-field [request p-name]
   (hidden-field {} p-name (get-parametr request p-name)))
 
-
-
-
 ;; INPUT ELEMENTS END -----------------------------------------------------------------------------
 
+;; LAYOUT -----------------------------------------------
+
 (defmacro div-bs-docs-section [& body]
-  (into [:div {:class "bs-docs-section"} ] body) )
+  `[:div {:class "bs-docs-section"}  ~@body] )
 
 (defmacro div-row [& body]
-  (into [:div {:class "row"} ] body) )
+  `[:div {:class "row"} ~@body] )
 
 (defmacro div-col-lg [cols & body]
-  (into [:div {:class `(str "col-lg-" ~cols)} ] body) )
+  `[:div {:class (str "col-lg-" ~cols)}  ~@body] )
 
 (defmacro div-well_bs-component [& body]
-  (into [:div {:class "well bs-component"} ] body) )
+  `[:div {:class "well bs-component"}  ~@body] )
 
 (defmacro div-form-horizontal [& body]
-  (into [:div {:class "form-horizontal"} ] body) )
+  `[:div {:class "form-horizontal"} ~@body] )
 
+;; ROW --------------------------------------------------
 
 (defn page-row- [cols & body]
   (into (div-col-lg cols) body))
@@ -494,7 +518,7 @@ $(window).load(function () {
 (defmacro page-row [col-lg & body]
   (apply page-row- (into [col-lg] body)))
 
-
+;; FORM -------------------------------------------------
 
 (defn div-form- [legend & body]
   (div-well_bs-component
@@ -506,21 +530,31 @@ $(window).load(function () {
 
 (defmacro page-form-1 [legend col-lg  & body]
   (page-row- col-lg
-            (apply div-form- (into [legend] body))))
+             (apply div-form- (into [legend] body))))
+
+;; FORM GROUP ------------------------------------------
+
+(defn e-has-? [{actus-has-es :actus-has-es} s id]
+  (str s
+       (if (nil? actus-has-es) ""
+           (let [es (actus-has-es id)]
+             (if (nil? es) ""
+                 (es {:warning " has-warning"
+                      :error " has-error"
+                      :success " has-success"}))))))
 
 
-
-(defmacro div-form-group [label col-lg-label col-lg-input
+(defn div-form-group [request label col-lg-label col-lg-input
                           [_ {id :id} :as input]]
 
-  [:div {:class "form-group"}
-   [:label {:for id :class `(str "col-lg-" ~col-lg-label " control-label")} label]
-   (conj [:div {:class `(str "col-lg-" ~col-lg-input)}] input)
-   ;;[:input {:type "text" :class "form-control" :id "inputEmail" :placeholder "Email"}]
-   ])
+  [:div {:class (e-has-? request "form-group" id) }
+    [:label {:for id :class (str "col-lg-" col-lg-label " control-label")} label]
+    [:div {:class (str "col-lg-" col-lg-input)}
+     input ;;[:input {:type "text" :class "form-control" :id "inputEmail" :placeholder "Email"}]
+     ]])
 
 
-;; MESSAGE BOXES
+;; MESSAGE BOXES ---------------------------------------
 (defn alert- [alert-type col-lg message-body]
   (let [a-type  (or (alert-type {:warning "alert-warning"
                                  :danger "alert-danger"
@@ -531,7 +565,7 @@ $(window).load(function () {
                  [:button {:type "button" :class "close" :data-dismiss "alert"} "x"]
                  message-body])))
 
-(defmacro alert-page [alert-type message-body]
+(defn alert-page [alert-type message-body]
   (div-bs-docs-section
    (div-row
     (alert- alert-type 12 message-body)
