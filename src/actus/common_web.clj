@@ -17,7 +17,7 @@
 
 ;; ************************************************************************************************
 ;; HTML ELEMENTS
-   
+
 (defn create-sub-e-group-id [e-group-id id]
   (keyword (str (name e-group-id) "_" (name id))))
 
@@ -412,13 +412,21 @@ $(window).load(function () {
   (assoc request :actus-has-es (assoc actus-has-es id has-es-type)))
 
 
-(defn actus-form-to [request id [method action] body]
+(defn actus-form-to [{{ret-url :ret-url :as params}
+                      :params :as request}
+                     id [method action] body]
   [:div
    (javascript-tag (js-text-compressor-coll-as-str
                     actus-form-head {:form-id (name id)}))
 
    (-> (form-to {:id id} [method action]
-                (hidden-field {} :actus nil))
+
+                (if (nil? ret-url) nil
+                    (hidden-field {} :ret-url ret-url))
+
+                (hidden-field {} :actus nil)
+
+                )
 
        (into (->> request :actus-alerts
                   (map #(let [[k message] %]
@@ -561,13 +569,13 @@ $(window).load(function () {
 
 
 (defn div-form-group [request label col-lg-label col-lg-input
-                          [_ {id :id} :as input]]
+                      [_ {id :id} :as input]]
 
   [:div {:class (e-has-? request "form-group" id) }
-    [:label {:for id :class (str "col-lg-" col-lg-label " control-label")} label]
-    [:div {:class (str "col-lg-" col-lg-input)}
-     input ;;[:input {:type "text" :class "form-control" :id "inputEmail" :placeholder "Email"}]
-     ]])
+   [:label {:for id :class (str "col-lg-" col-lg-label " control-label")} label]
+   [:div {:class (str "col-lg-" col-lg-input)}
+    input ;;[:input {:type "text" :class "form-control" :id "inputEmail" :placeholder "Email"}]
+    ]])
 
 
 ;; MESSAGE BOXES ---------------------------------------
@@ -590,7 +598,65 @@ $(window).load(function () {
 
 
 
+;; ENTITY MAPPING -------------------------------------
 
+(def test-entity {:id 0
+                  :keyname "Keyname entity"
+                  :num 10
+                  :somevalue ""
+                  :description "some description entity...."})
+
+(def test-form {:ids "1werqw"
+                :keyname "Keyname form"
+                :num "100"
+                :description "some description form ...."})
+
+
+(def form-<map>-entity
+  [
+   {:e :id
+    :f :ids
+    :f-<-e str
+    :f->-e #(Integer/parseInt %)
+    }
+
+   {:e :keyname
+    :f :keyname
+    :f-<-e str
+    :f->-e str
+    }
+
+   {:e :description
+    :f :description
+    :f-<-e str
+    :f->-e str
+    }
+
+   ])
+
+
+(defn fill-form-<map>-entity [fme form direction entity]
+  (let [[to-k f-conv-k from-k
+         from-e to-e] (cond (= :-<- direction) [:f :f-<-e :e entity form]
+                            (= :->- direction) [:e :f->-e :f form entity]
+                            :else (throw (Exception. (str "Error direction key '" direction  "' . Mast be only ':-<-' or ':->-' ."))))]
+    (->
+     ;; Проходимся и пробуем сконвертировать
+     (reduce (fn [[a e] {to to-k from from-k f-conv f-conv-k}]
+               (try
+                 [(assoc a to (f-conv (from from-e))) e]
+                 (catch Exception ex
+                   [a (conj e [from "Нерпавильный формат поля." (.getMessage ex)])])
+                 ))
+             [to-e []] fme)
+
+     ;; Формируеем вывод
+     ((fn [[to-e errors]]
+        (cond (= :-<- direction) {:form to-e :entity entity :errors errors}
+              (= :->- direction) {:form form :entity to-e :errors errors}
+              :else (throw (Exception. "Error key"))
+              )))
+     )))
 
 
 
