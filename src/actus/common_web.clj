@@ -570,8 +570,7 @@ $(window).load(function () {
 
 (defn div-form-group [request label col-lg-label col-lg-input
                       [_ {id :id} :as input]]
-
-  [:div {:class (e-has-? request "form-group" id) }
+  [:div {:class (e-has-? request "form-group" (keyword id)) }
    [:label {:for id :class (str "col-lg-" col-lg-label " control-label")} label]
    [:div {:class (str "col-lg-" col-lg-input)}
     input ;;[:input {:type "text" :class "form-control" :id "inputEmail" :placeholder "Email"}]
@@ -600,39 +599,43 @@ $(window).load(function () {
 
 ;; ENTITY MAPPING -------------------------------------
 
-(def test-entity {:id 0
-                  :keyname "Keyname entity"
-                  :num 10
-                  :somevalue ""
-                  :description "some description entity...."})
+(comment
 
-(def test-form {:ids "1werqw"
-                :keyname "Keyname form"
-                :num "100"
-                :description "some description form ...."})
+  (def test-entity {:id 0
+                    :keyname "Keyname entity"
+                    :num 10
+                    :somevalue ""
+                    :description "some description entity...."})
+
+  (def test-form {:ids "1werqw"
+                  :keyname "Keyname form"
+                  :num "100"
+                  :description "some description form ...."})
 
 
-(def form-<map>-entity
-  [
-   {:e :id
-    :f :ids
-    :f-<-e str
-    :f->-e #(Integer/parseInt %)
-    }
+  (def form-<map>-entity
+    [
+     {:e :id
+      :f :ids
+      :f-<-e str
+      :f->-e #(Integer/parseInt %)
+      }
 
-   {:e :keyname
-    :f :keyname
-    :f-<-e str
-    :f->-e str
-    }
+     {:e :keyname
+      :f :keyname
+      :f-<-e str
+      :f->-e str
+      }
 
-   {:e :description
-    :f :description
-    :f-<-e str
-    :f->-e str
-    }
+     {:e :description
+      :f :description
+      :f-<-e str
+      :f->-e str
+      }
 
-   ])
+     ])
+
+  )
 
 
 (defn fill-form-<map>-entity [fme form direction entity]
@@ -642,12 +645,15 @@ $(window).load(function () {
                             :else (throw (Exception. (str "Error direction key '" direction  "' . Mast be only ':-<-' or ':->-' ."))))]
     (->
      ;; Проходимся и пробуем сконвертировать
-     (reduce (fn [[a e] {to to-k from from-k f-conv f-conv-k}]
-               (try
-                 [(assoc a to (f-conv (from from-e))) e]
-                 (catch Exception ex
-                   [a (conj e [from "Нерпавильный формат поля." (.getMessage ex)])])
-                 ))
+     (reduce (fn [[a e] {to to-k from from-k f-conv f-conv-k
+                         e-fn-rm? :e-fn-rm? :or {e-fn-rm? (fn [_] false)}}]
+               (let [value (from from-e)]
+                 (try
+                   [(if (e-fn-rm? value) (dissoc a to)
+                      (assoc a to (f-conv value))) e]
+                   (catch Exception ex
+                     [a (conj e [from "Нерпавильный формат поля." (.getMessage ex)])])
+                   )))
              [to-e []] fme)
 
      ;; Формируеем вывод
@@ -658,6 +664,21 @@ $(window).load(function () {
               )))
      )))
 
+
+(defn validate-params-and-fill-entity [{params :params :as request} fme entity]
+  ;;(println ">>>>" params)
+  (let [{entity :entity errors :errors} (fill-form-<map>-entity fme params :->- entity)]
+    (if (empty? errors) (vector :form request)
+        (vector :form (reduce (fn [request [input-id ex-text ex-message]]
+                                ;;(println ">>>>>>>>>>" input-id)
+                                (-> request
+                                    (actus-add-alert :danger (str ex-text ": " ex-message))
+                                    (actus-add-e-has input-id :error)
+                                    ;;(#(do (println %) %))
+                                    ))
+                              request errors
+                              ))
+        )))
 
 
 
