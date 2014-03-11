@@ -509,8 +509,9 @@ $(window).load(function () {
   (let [{value id :or {value default-value}} params]
     (text-field attrs id value)))
 
-
-
+(defn actus-text-area [params attrs id default-value]
+  (let [{value id :or {value default-value}} params]
+    (text-area attrs name value)))
 
 
 
@@ -592,7 +593,7 @@ $(window).load(function () {
   (div-bs-docs-section
    (div-row
     (alert- alert-type 12 message-body)
-    )))
+     )))
 
 
 
@@ -665,10 +666,10 @@ $(window).load(function () {
      )))
 
 
-(defn validate-params-and-fill-entity [{params :params :as request} fme entity]
+(defn validate-params-and-fill-entity [{params :params :as request} fme entity fn-if-success]
   ;;(println ">>>>" params)
   (let [{entity :entity errors :errors} (fill-form-<map>-entity fme params :->- entity)]
-    (if (empty? errors) (vector :form request)
+    (if (empty? errors) (fn-if-success request)
         (vector :form (reduce (fn [request [input-id ex-text ex-message]]
                                 ;;(println ">>>>>>>>>>" input-id)
                                 (-> request
