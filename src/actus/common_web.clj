@@ -593,50 +593,51 @@ $(window).load(function () {
   (div-bs-docs-section
    (div-row
     (alert- alert-type 12 message-body)
-     )))
+    )))
 
 
 
 
 ;; ENTITY MAPPING -------------------------------------
 
-(comment
-
-  (def test-entity {:id 0
-                    :keyname "Keyname entity"
-                    :num 10
-                    :somevalue ""
-                    :description "some description entity...."})
-
-  (def test-form {:ids "1werqw"
-                  :keyname "Keyname form"
-                  :num "100"
-                  :description "some description form ...."})
 
 
-  (def form-<map>-entity
-    [
-     {:e :id
-      :f :ids
-      :f-<-e str
-      :f->-e #(Integer/parseInt %)
-      }
+(def test-entity {:id 0
+                  :keyname "Keyname entity"
+                  :num 10
+                  :somevalue ""
+                  :description "some description entity...."})
 
-     {:e :keyname
-      :f :keyname
-      :f-<-e str
-      :f->-e str
-      }
+(def test-form {:ids "1"
+                :keyname "Keyname form"
+                :num "100"
+                :description "some description form ...."})
 
-     {:e :description
-      :f :description
-      :f-<-e str
-      :f->-e str
-      }
 
-     ])
+(def form-<map>-entity
+  [
+   {:e :id
+    :f :ids
+    :f-<-e str
+    :f->-e #(Integer/parseInt %)
+    :e-fn-rm? empty?
+    }
 
-  )
+   {:e :keyname
+    :f :keyname
+    :f-<-e str
+    :f->-e str
+    }
+
+   {:e :description
+    :f :description
+    :f-<-e str
+    :f->-e str
+    }
+
+   ])
+
+
 
 
 (defn fill-form-<map>-entity [fme form direction entity]
@@ -647,11 +648,15 @@ $(window).load(function () {
     (->
      ;; Проходимся и пробуем сконвертировать
      (reduce (fn [[a e] {to to-k from from-k f-conv f-conv-k
-                         e-fn-rm? :e-fn-rm? :or {e-fn-rm? (fn [_] false)}}]
-               (let [value (from from-e)]
+                         t-e-fn-rm? :e-fn-rm? }]
+               (let [value (from from-e)
+                     e-fn-rm?  (if (and (= direction :f->-e) (not (nil? t-e-fn-rm?)))
+                                 t-e-fn-rm?
+                                 (fn [_] false))]
                  (try
-                   [(if (e-fn-rm? value) (dissoc a to)
-                      (assoc a to (f-conv value))) e]
+                   [(if (e-fn-rm? value)
+                      (dissoc a to)
+                      (assoc a to (f-conv value)) ) e]
                    (catch Exception ex
                      [a (conj e [from "Нерпавильный формат поля." (.getMessage ex)])])
                    )))
@@ -666,23 +671,28 @@ $(window).load(function () {
      )))
 
 
-(defn validate-params-and-fill-entity [{params :params :as request} fme entity fn-if-success]
-  ;;(println ">>>>" params)
+(defn try-fill-entity [{params :params :as request} fme entity fn-if-success]
   (let [{entity :entity errors :errors} (fill-form-<map>-entity fme params :->- entity)]
     (if (empty? errors) (fn-if-success request)
         (vector :form (reduce (fn [request [input-id ex-text ex-message]]
-                                ;;(println ">>>>>>>>>>" input-id)
                                 (-> request
                                     (actus-add-alert :danger (str ex-text ": " ex-message))
                                     (actus-add-e-has input-id :error)
                                     ;;(#(do (println %) %))
                                     ))
-                              request errors
-                              ))
+                              request errors ))
         )))
 
 
-
+(defn try-fill-form [{params :params :as request} fme entity fn-if-success]
+  (let [{new-params :form errors :errors} (fill-form-<map>-entity fme params :-<- entity)]
+    (if (empty? errors) (fn-if-success (assoc request :params new-params))
+        (vector :form (reduce (fn [request [input-id ex-text ex-message]]
+                                (-> request
+                                    (actus-add-alert :danger (str ex-text ": " ex-message))
+                                    ))
+                              request errors ))
+        )))
 
 
 
