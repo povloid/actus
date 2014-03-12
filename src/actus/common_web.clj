@@ -670,9 +670,9 @@ $(window).load(function () {
      )))
 
 
-(defn try-fill-entity [{params :params :as request} fme entity fn-if-success]
+(defn try-fill-entity [{params :params :as request} fme entity entity-key-in-request]
   (let [{entity :entity errors :errors} (fill-form-<map>-entity fme params :->- entity)]
-    (if (empty? errors) (fn-if-success request)
+    (if (empty? errors) (assoc request entity-key-in-request entity)
         (vector :form (reduce (fn [request [input-id ex-text ex-message]]
                                 (-> request
                                     (actus-add-alert :danger (str ex-text ": " ex-message))
@@ -692,6 +692,40 @@ $(window).load(function () {
                                     ))
                               request errors ))
         )))
+
+
+
+(defn do-form->- [request functions]
+  (vector :form
+          (loop [step 1 [request error] [request false] do-fn (first functions) functions-list (rest functions)]
+            (cond (true? error) request
+                  (nil? do-fn) request
+                  :else (recur (inc step)
+                               (try [(do-fn request) false]
+                                    (catch Exception ex
+                                      [(actus-add-alert request :danger
+                                                        (str "Операция не проведена, на шаге (" step ") произошла ошибка: "
+                                                             (.getMessage ex)))
+                                       true] ))
+
+                               (first functions-list) (rest functions-list))))))
+
+
+(defmacro do-form-from-request-> [& body]
+  (let [rqname (gensym "request")]
+    `(fn [~rqname]
+       (do-form->- ~rqname [ ~@body ]))))
+
+
+
+
+
+
+
+
+
+
+
 
 
 
