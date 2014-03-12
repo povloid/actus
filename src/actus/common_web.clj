@@ -511,7 +511,7 @@ $(window).load(function () {
 
 (defn actus-text-area [params attrs id default-value]
   (let [{value id :or {value default-value}} params]
-    (text-area attrs name value)))
+    (text-area attrs id value)))
 
 
 
@@ -638,8 +638,6 @@ $(window).load(function () {
    ])
 
 
-
-
 (defn fill-form-<map>-entity [fme form direction entity]
   (let [[to-k f-conv-k from-k
          from-e to-e] (cond (= :-<- direction) [:f :f-<-e :e entity form]
@@ -650,7 +648,8 @@ $(window).load(function () {
      (reduce (fn [[a e] {to to-k from from-k f-conv f-conv-k
                          t-e-fn-rm? :e-fn-rm? }]
                (let [value (from from-e)
-                     e-fn-rm?  (if (and (= direction :f->-e) (not (nil? t-e-fn-rm?)))
+                     e-fn-rm?  (if (and (= f-conv-k :f->-e)
+                                        (not (nil? t-e-fn-rm?)))
                                  t-e-fn-rm?
                                  (fn [_] false))]
                  (try
@@ -658,7 +657,7 @@ $(window).load(function () {
                       (dissoc a to)
                       (assoc a to (f-conv value)) ) e]
                    (catch Exception ex
-                     [a (conj e [from "Нерпавильный формат поля." (.getMessage ex)])])
+                     [a (conj e [from (str "Нерпавильный формат поля: " to ) (.getMessage ex)])])
                    )))
              [to-e []] fme)
 
