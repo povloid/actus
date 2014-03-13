@@ -8,6 +8,11 @@
 
   (:require [net.cgrand.enlive-html :as h]
             [actus.common-db-sql :as cdbsql]
+
+            [clj-time.core :as tco]
+            [clj-time.format :as tf]
+            [clj-time.coerce :as tc]
+            
             ))
 
 
@@ -403,7 +408,8 @@ $(window).load(function () {
   "Добавляет сообщение в массив сообщений по ключу :actus-alerts"
   [{actus-alerts :actus-alerts :or {actus-alerts []} :as request}
    alert-type message]
-  (assoc request :actus-alerts (conj actus-alerts [alert-type message])))
+  (assoc request :actus-alerts
+         (conj actus-alerts [alert-type message])))
 
 (defn actus-add-e-has
   "Подсветка элемента по ключу id"
@@ -673,24 +679,24 @@ $(window).load(function () {
 (defn try-fill-entity [{params :params :as request} fme entity entity-key-in-request]
   (let [{entity :entity errors :errors} (fill-form-<map>-entity fme params :->- entity)]
     (if (empty? errors) (assoc request entity-key-in-request entity)
-        (vector :form (reduce (fn [request [input-id ex-text ex-message]]
+        (reduce (fn [request [input-id ex-text ex-message]]
                                 (-> request
                                     (actus-add-alert :danger (str ex-text ": " ex-message))
                                     (actus-add-e-has input-id :error)
                                     ;;(#(do (println %) %))
                                     ))
-                              request errors ))
+                              request errors )
         )))
 
 
-(defn try-fill-form [{params :params :as request} fme entity fn-if-success]
+(defn try-fill-form [{params :params :as request} fme entity]
   (let [{new-params :form errors :errors} (fill-form-<map>-entity fme params :-<- entity)]
-    (if (empty? errors) (fn-if-success (assoc request :params new-params))
-        (vector :form (reduce (fn [request [input-id ex-text ex-message]]
+    (if (empty? errors) (assoc request :params new-params)
+        (reduce (fn [request [input-id ex-text ex-message]]
                                 (-> request
                                     (actus-add-alert :danger (str ex-text ": " ex-message))
                                     ))
-                              request errors ))
+                              request errors )
         )))
 
 
@@ -698,6 +704,7 @@ $(window).load(function () {
 (defn do-form->- [request functions]
   (vector :form
           (loop [step 1 [request error] [request false] do-fn (first functions) functions-list (rest functions)]
+            (println step)
             (cond (true? error) request
                   (nil? do-fn) request
                   :else (recur (inc step)
@@ -716,6 +723,11 @@ $(window).load(function () {
     `(fn [~rqname]
        (do-form->- ~rqname [ ~@body ]))))
 
+
+;; TIMESTAMP
+(def formatter-yyyy-MM-dd-HH:mm:ss (tf/formatter "yyyy-MM-dd HH:mm:ss"))
+
+(def formatter-yyyy-MM-dd (tf/formatter "yyyy-MM-dd"))
 
 
 
