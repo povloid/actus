@@ -12,7 +12,7 @@
             [clj-time.core :as tco]
             [clj-time.format :as tf]
             [clj-time.coerce :as tc]
-            
+
             ))
 
 
@@ -680,12 +680,12 @@ $(window).load(function () {
   (let [{entity :entity errors :errors} (fill-form-<map>-entity fme params :->- entity)]
     (if (empty? errors) (assoc request entity-key-in-request entity)
         (reduce (fn [request [input-id ex-text ex-message]]
-                                (-> request
-                                    (actus-add-alert :danger (str ex-text ": " ex-message))
-                                    (actus-add-e-has input-id :error)
-                                    ;;(#(do (println %) %))
-                                    ))
-                              request errors )
+                  (-> request
+                      (actus-add-alert :danger (str ex-text ": " ex-message))
+                      (actus-add-e-has input-id :error)
+                      ;;(#(do (println %) %))
+                      ))
+                request errors )
         )))
 
 
@@ -693,10 +693,10 @@ $(window).load(function () {
   (let [{new-params :form errors :errors} (fill-form-<map>-entity fme params :-<- entity)]
     (if (empty? errors) (assoc request :params new-params)
         (reduce (fn [request [input-id ex-text ex-message]]
-                                (-> request
-                                    (actus-add-alert :danger (str ex-text ": " ex-message))
-                                    ))
-                              request errors )
+                  (-> request
+                      (actus-add-alert :danger (str ex-text ": " ex-message))
+                      ))
+                request errors )
         )))
 
 
@@ -728,6 +728,28 @@ $(window).load(function () {
 (def formatter-yyyy-MM-dd-HH:mm:ss (tf/formatter "yyyy-MM-dd HH:mm:ss"))
 
 (def formatter-yyyy-MM-dd (tf/formatter "yyyy-MM-dd"))
+
+
+
+;; Dialogs
+
+
+(defn dialog []
+  [:div
+   [:div {:id :source-modal :class "modal fade"}
+    [:div {:class "modal-dialog modal-lg"}
+     [:div {:class "modal-content"}
+      [:div {:class "modal-header"}
+       [:button {:type "button" :class "close" :data-dismiss "modal" :aria-hidden "true"} "&times;"]
+       [:h4 {:class "modal-title"} "Title" ]
+       ]
+      [:div {:class "modal-body"}
+       "Dialog text"
+       ]]]]
+
+   [:button {:type "button" :onclick "$(\"#source-modal\").modal();"} "Dialog"]
+   ])
+
 
 
 
