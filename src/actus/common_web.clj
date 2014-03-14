@@ -278,7 +278,7 @@
 (defn html-navbar-menu-item [text url]
   [:li [:a {:href url} text ]])
 
-(def html-navbar-menu-devider-------------------------------
+(def html-navbar-menu-devider
   [:li {:class "divider"} ])
 
 (defn html-navbar-menu-header [text]
@@ -332,9 +332,25 @@
 
 
 ;; WEB FORMS
-(defn actus-in-form [{{actus :actus :as params} :params :as request}
-                     actus-fns
-                     render-form-fm]
+(defn actus-in-form
+  " Главная функция для отработки событий
+Параметр:
+
+1. request - запрос,колекция от ring
+
+2. actus-fns - карта событий и функция от запроса (fn [request] .....)
+Примеры actus-fns:
+:action1 #(vec [nil (str %)])
+:action2 #(vec [:form %])
+:action3 #(vec [%])
+:action4 #(vec [:some-tag %])
+:action7 #(vector :redirect \"http://www.linux.org.ru\" %)
+:action8 #(vector :response \"some body\" %)
+
+3. render-form-fm - Функция рендер формы вида (fn [request] .....)"
+  [{{actus :actus :as params} :params :as request}
+   actus-fns
+   render-form-fm]
 
   ;;(println "\n\n" params)
 
@@ -410,7 +426,19 @@ $(window).load(function () {
 
 
 (defn actus-add-alert
-  "Добавляет сообщение в массив сообщений по ключу :actus-alerts"
+  "Добавляет сообщение в массив сообщений по ключу :actus-alerts
+Пример:
+:update! #(vector :form (-> %
+                            (cw/actus-add-alert :info \"info\")
+                            (cw/actus-add-alert :danger \"danger!\")
+                            (cw/actus-add-alert :info \"info\")
+                            (cw/actus-add-alert :info \"info\")
+                            (cw/actus-add-alert :warning \"warning\")
+                            (cw/actus-add-alert :success \"success\")
+                            (cw/actus-add-e-has :keyname :error)
+                            (cw/actus-add-e-has :inputEmail :warning)
+                            (cw/actus-add-e-has :inputEmail nil) ;; Отключает
+                         ))"
   [{actus-alerts :actus-alerts :or {actus-alerts []} :as request}
    alert-type message]
   (assoc request :actus-alerts
@@ -545,11 +573,15 @@ $(window).load(function () {
 
 (defn actus-text-field [params attrs id default-value]
   (let [{value id :or {value default-value}} params]
-    (text-field attrs id value)))
+    (text-field (merge {:class "form-control"} attrs) id value)))
 
 (defn actus-text-area [params attrs id default-value]
   (let [{value id :or {value default-value}} params]
-    (text-area attrs id value)))
+    (text-area (merge {:class "form-control"} attrs) id value)))
+
+
+
+
 
 
 
@@ -714,10 +746,11 @@ $(window).load(function () {
         (reduce (fn [request [input-id ex-text ex-message]]
                   (-> request
                       (actus-add-alert :danger (str ex-text ": " ex-message))
-                      (actus-add-e-has input-id :error)
+                      (actus-add-e-has input-id :error)                      
                       ;;(#(do (println %) %))
                       ))
-                request errors )
+                (assoc request :errors (merge (request :errors) :errors)) ;;<---- Надо проработать :errors 
+                errors)
         )))
 
 
@@ -734,10 +767,12 @@ $(window).load(function () {
 
 
 (defn do-form->- [request functions]
+  ;;(println "start do-form:")
   (vector :form
           (loop [step 1 [request error] [request false] do-fn (first functions) functions-list (rest functions)]
-            (println step)
-            (cond (true? error) request
+            ;;(println step)
+            (cond (not (empty? (:errors request))) request ;; если были ошибки от конвертатора
+                  (true? error) request
                   (nil? do-fn) request
                   :else (recur (inc step)
                                (try [(do-fn request) false]
@@ -813,7 +848,7 @@ $( \"#" div-id "\" ).html( \"<div id='" div-id "' >\" + data + \"</div>\" );
         ]]]
 
      (javascript-tag
-      (js-text-compressor-no
+      (js-text-compressor
        (str
         "function update_" e-tag-id-s "(url){
 $.ajax({
