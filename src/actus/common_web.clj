@@ -38,6 +38,10 @@
       (clojure.string/replace #"\s+" " ")
       ))
 
+(defn js-text-compressor-no
+  "Unformatted mock"
+  [text] text)
+
 (defn js-text-compressor-map-str
   "[ \" alert   ('\" :key  \"')  ;  \" ... ] => [ \"alert('\" :key  \"');\" ... ]"
   [x]
@@ -351,7 +355,8 @@
           ;; Если условие проходит то считаем что это action
           (let [[tag result] result]
             (cond (= :form tag) (render-form-fm result) ;; render form request
-                  (= :response tag) (ring.util.response/response result)
+                  (= :response tag) (-> (ring.util.response/response result)
+                                        (ring.util.response/charset "UTF-8"))
                   (= :redirect tag) (ring.util.response/redirect result)
                   :else (html5 [:h1 "Не найден tag: " tag ]
                                [:br]
@@ -440,7 +445,8 @@ $(window).load(function () {
                           ))
                   ))
 
-       ;;(conj (alert-page :info "!!!!!!!!!!!!!!!"))
+       ;;FOR DEBUG
+       ;;(conj (alert-page :info "!"))
 
        (into body)
        )
@@ -448,19 +454,45 @@ $(window).load(function () {
   )
 
 
-(defn actus-button [actus value]
-  [:input {:type "button"
-           :class "btn btn-default" :value value
-           :onclick (str "this.form.elements['actus'].value='" (name actus) "';this.form.submit();")}])
+(defn actus-button [actus value attrs]
+  [:input (merge {:type "button"
+                  :class "btn btn-default" :value value
+                  :onclick (str "this.form.elements['actus'].value='" (name actus) "';this.form.submit();")}
+                 attrs)
+   ])
 
-(defn actus-button-wapl [actus value params]
-  (let [[input attrs & other] (actus-button actus value)
-        onclick (:onclick attrs)]
-    (into [input (assoc attrs :onclick (->> (map #(str "this.form.elements['" (name %) "'].value='" (params %) "';") (keys params))
-                                            (apply str)
-                                            (#(str % onclick))
-                                            ))]
+(defn actus-button-wapl [actus value params attrs]
+  (let [[input attrs-1 & other] (actus-button actus value attrs)
+        onclick (:onclick attrs-1)]
+    (into [input
+           (assoc attrs-1
+             :onclick (->> (map #(str "this.form.elements['" (name %) "'].value='" (params %) "';") (keys params))
+                           (apply str)
+                           (#(str % onclick))
+                           ))]
           other)))
+
+(defn actus-button-wapl-default [actus value params]
+  (actus-button-wapl actus value params {:class "btn btn-default"}))
+
+(defn actus-button-wapl-primary [actus value params]
+  (actus-button-wapl actus value params {:class "btn btn-primary"}))
+
+(defn actus-button-wapl-success [actus value params]
+  (actus-button-wapl actus value params {:class "btn btn-success"}))
+
+(defn actus-button-wapl-info [actus value params]
+  (actus-button-wapl actus value params {:class "btn btn-info"}))
+
+(defn actus-button-wapl-warning [actus value params]
+  (actus-button-wapl actus value params {:class "btn btn-warning"}))
+
+(defn actus-button-wapl-danger [actus value params]
+  (actus-button-wapl actus value params {:class "btn btn-danger"}))
+
+(defn actus-button-wapl-link [actus value params]
+  (actus-button-wapl actus value params {:class "btn btn-link"}))
+
 
 ;; :params
 ;; :uri "/content"
@@ -729,12 +761,11 @@ $(window).load(function () {
 
 (def formatter-yyyy-MM-dd (tf/formatter "yyyy-MM-dd"))
 
-
+(def formatter-HH:mm:ss (tf/formatter "HH:mm:ss"))
 
 ;; Dialogs
 
-
-(defn dialog []
+(defn dialog-test []
   [:div
    [:div {:id :source-modal :class "modal fade"}
     [:div {:class "modal-dialog modal-lg"}
@@ -751,6 +782,51 @@ $(window).load(function () {
    ])
 
 
+(defn ajax-fn-udate-div [f-name url pars div-id]
+  (javascript-tag
+   (str
+    "function " f-name "()
+$.ajax({
+url: \"" url "\",
+data: " pars ",
+success: function(data) {
+$( \"#" div-id "\" ).html( \"<div id='" div-id "' >\" + data + \"</div>\" );
+}})};"
+)))
+
+(defn button-show-dialog [caption dialog-id url]
+  [:button {:type "button" :class "btn btn-default"
+            :onclick (str "update_" (name dialog-id) "('" url "')") } caption])
+
+(defn dialog-ajax [e-tag-id title dialog-footer]
+  (let [e-tag-id-s (name e-tag-id)
+        body-id-s  (str e-tag-id-s "_dialog_body" )]
+    [:div
+     [:div {:id e-tag-id :class "modal fade"}
+      [:div {:class "modal-dialog modal-lg"}
+       [:div {:class "modal-content"}
+        [:div {:class "modal-header"}
+         [:button {:type "button" :class "close" :data-dismiss "modal" :aria-hidden "true"} "&times;"]
+         [:h4 {:class "modal-title"} title ] ]
+        [:div {:class "modal-body"}
+         [:div {:id body-id-s}] [:hr] dialog-footer]
+        ]]]
+
+     (javascript-tag
+      (js-text-compressor-no
+       (str
+        "function update_" e-tag-id-s "(url){
+$.ajax({
+url: url,
+success: function(data){
+$(\"#" body-id-s "\").html(\"<div id='" body-id-s "' >\" + data + \"</div>\");
+$(\"#" e-tag-id-s "\").modal();
+}});}"
+)))
+     ]))
+
+(defn button-close-modal [caption]
+  [:button {:type "button" :class "btn btn-default" :data-dismiss "modal" :aria-hidden "true"} caption])
 
 
 

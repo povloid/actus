@@ -19,6 +19,16 @@
       (insert entity (values vals))
       r)) )
 
+(defn common-delete* 
+  "Сохранить сущность"
+  [entity]
+  (delete* entity))
+
+(defn common-delete-for-id 
+  "Сохранить сущность"
+  [entity id]
+  (delete entity (where (= :id id))))
+
 (defn common-find 
   "Найти сущность по :id"
   [entity id]
