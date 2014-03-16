@@ -20,8 +20,30 @@
 (declare alert- alert-page)
 
 
-;; ************************************************************************************************
-;; HTML ELEMENTS
+;;**************************************************************************************************
+;;* BEGIN FORMATTERS
+;;* tag: <formatters>
+;;*
+;;* description: Форматировщики данных
+;;*
+;;**************************************************************************************************
+
+(def formatter-yyyy-MM-dd-HH:mm:ss (tf/formatter "yyyy-MM-dd HH:mm:ss"))
+
+(def formatter-yyyy-MM-dd (tf/formatter "yyyy-MM-dd"))
+
+(def formatter-HH:mm:ss (tf/formatter "HH:mm:ss"))
+
+;; END FORMATTERS
+;;..................................................................................................
+
+;;**************************************************************************************************
+;;* BEGIN Javascript tools
+;;* tag: <javascript>
+;;*
+;;* description: Утилиты для работы с кодом javascript
+;;*
+;;**************************************************************************************************
 
 (defn create-sub-e-group-id [e-group-id id]
   (keyword (str (name e-group-id) "_" (name id))))
@@ -56,6 +78,67 @@
 
 (defn js-e-dec [id]
   (str " v = this.form.elements['" (name id) "'].value; if(v > 1) this.form.elements['" (name id) "'].value = parseInt(v) - 1;"))
+
+;; END Javascript tools
+;;..................................................................................................
+
+
+;;**************************************************************************************************
+;;* BEGIN table
+;;* tag: <table>
+;;*
+;;* description: Функционал формирования таблиц
+;;*
+;;**************************************************************************************************
+
+
+;;------------------------------------------------------------------------------
+;; BEGIN: Common html table
+;; tag: <table>
+;; description: Функция рендеринга таблиц
+;;------------------------------------------------------------------------------
+
+(defn html-table
+  "Генерирует HTML таблицу"
+  [{e-group-id :e-group-id columns :columns items :items}]
+  [:div {:class "bs-example table-responsive"}
+   [:table {:id (create-sub-e-group-id e-group-id :table)
+            :class "table table-striped table-hover" :width "100%"}
+    [:thead
+     [:tr
+      (for [column columns]
+        [:th (column :text)])]]
+
+    (for [item
+          ;;(map #(assoc % :css-c-type %2) items (cycle ["0" "1"])) ;; Код чередования для старого CSS (чередование цвета)
+          items]
+      [:tr
+       (for [{getfn :getfn style :style} columns]
+         [:td {:style style}  (getfn item)])
+       ])
+    ]]
+  )
+
+;; Функционал для дополнения структур
+
+(defn add-columns [{columns :columns :as table-describe} cols-describes]
+  (assoc table-describe :columns (into columns cols-describes)))
+
+(defn add-column [{columns :columns :as table-describe} col-describe]
+  (assoc table-describe :columns (conj columns col-describe)))
+
+(defn items-do-fn [{items :items :as table-describe} f]
+  (assoc table-describe :items (f items)))
+
+;; END Common html table
+;;..............................................................................
+
+
+;;------------------------------------------------------------------------------
+;; BEGIN: Paginator
+;; tag: <paginator>
+;; description: Пэйджер
+;;------------------------------------------------------------------------------
 
 (defn paginator
   "Пэйджер"
@@ -95,6 +178,16 @@
 
      [:div {:style "display: inline;"}]
      ]))
+
+
+;; END Paginator
+;;..............................................................................
+
+;;------------------------------------------------------------------------------
+;; BEGIN: Sorter
+;; tag: <sorter>
+;; description: Сортировщик
+;;------------------------------------------------------------------------------
 
 (defn columm-sorter [e-group-id label-text request columns p-sort-column-name p-sort-column-type onclick]
   (let [sorter-id (create-sub-e-group-id e-group-id p-sort-column-name)
@@ -140,29 +233,15 @@
                  query)
          ) ))
 
+;; END Sorter
+;;..............................................................................
 
 
-(defn html-table
-  "Генерирует HTML таблицу"
-  [{e-group-id :e-group-id columns :columns items :items}]
-  [:div {:class "bs-example table-responsive"}
-   [:table {:id (create-sub-e-group-id e-group-id :table)
-            :class "table table-striped table-hover" :width "100%"}
-    [:thead
-     [:tr
-      (for [column columns]
-        [:th (column :text)])]]
-
-    (for [item
-          ;;(map #(assoc % :css-c-type %2) items (cycle ["0" "1"])) ;; Код чередования для старого CSS (чередование цвета)
-          items]
-      [:tr
-       (for [{getfn :getfn style :style} columns]
-         [:td {:style style}  (getfn item)])
-       ])
-    ]]
-  )
-
+;;------------------------------------------------------------------------------
+;; BEGIN: Sorted and paged table
+;; tag: <table>
+;; description: Сортируемая постраничная таблица
+;;------------------------------------------------------------------------------
 
 (defn html-table-with-page-sort [request table-describe e-group-id-suff]
   "Отрендерить таблицу. Пример определения:
@@ -244,21 +323,19 @@
      ]
     ))
 
+;; END Sorted and paged table
+;;..............................................................................
 
-(defn add-columns [{columns :columns :as table-describe} cols-describes]
-  (assoc table-describe :columns (into columns cols-describes)))
+;; END table
+;;..................................................................................................
 
-(defn add-column [{columns :columns :as table-describe} col-describe]
-  (assoc table-describe :columns (conj columns col-describe)))
-
-(defn items-do-fn [{items :items :as table-describe} f]
-  (assoc table-describe :items (f items)))
-
-
-;; table buttons
-
-
-;; MENU -------------------------------------------------------------------------------------------------------------------
+;;**************************************************************************************************
+;;* BEGIN Navbar and menu
+;;* tag: <navbar-menu>
+;;*
+;;* description: Панель навигации
+;;*
+;;**************************************************************************************************
 
 (defn html-navbar-link [text url]
   [:li [:a {:href url} text ]])
@@ -316,10 +393,16 @@
    ] ;; 1. navbar
   )
 
-;; MENU ...
+;; END mavbar
+;;..................................................................................................
 
-
-;; WEB FORMS
+;;**************************************************************************************************
+;;* BEGIN ACTUS
+;;* tag: <actus>
+;;*
+;;* description: Функционал создания и обработки событий для веб форм
+;;*
+;;**************************************************************************************************
 
 ;; ВАЖНЫЕ ПЕРЕМЕННЫЕ
 (def actus-keyword :actus)
@@ -330,6 +413,11 @@
 (def actus-has-es-keyword :actus-has-es)
 (def actus-alerts-keyword :actus-alerts)
 
+;;------------------------------------------------------------------------------
+;; BEGIN: Alerts
+;; tag: <alert>
+;; description: Функционал для создания различных сообщений и подсветок
+;;------------------------------------------------------------------------------
 
 ;; Добавление ошибки
 (defn add-error [{actus-errors actus-errors-keyword :or {actus-errors []} :as request} error]
@@ -337,6 +425,7 @@
 
 (defn add-errors [{actus-errors actus-errors-keyword :or {actus-errors []} :as request} errors]
   (assoc request actus-errors-keyword (into actus-errors errors)))
+
 
 (defn actus-add-alert
   "Добавляет сообщение в массив сообщений по ключу :actus-alerts
@@ -357,14 +446,14 @@
   (assoc request actus-alerts-keyword
          (conj actus-alerts [alert-type message])))
 
-
 (defn actus-add-e-has
   "Подсветка элемента по ключу id"
   [{actus-has-es actus-has-es-keyword :or {actus-has-es {}} :as request}
    id has-es-type]
   (assoc request actus-has-es-keyword (assoc actus-has-es id has-es-type)))
 
-
+;; END Alerts
+;;..............................................................................
 
 
 ;; ACTUS-CORE ---------------------------------------------------------------------------
@@ -430,8 +519,6 @@
   )
 
 
-
-
 (defn actus-form-head [id]
 
   "Заголовок, вынесенный в def для оптимизации по скорости"
@@ -491,6 +578,12 @@ $(window).load(function () {
 
 ;; BUTTONS ------------------------------------------------------------------------------------------
 
+;;------------------------------------------------------------------------------
+;; BEGIN: Actus button functional
+;; tag: <actus-button>
+;; description: Кнопки актуса
+;;------------------------------------------------------------------------------
+
 (defn actus-button [actus value attrs]
   [:input (merge {:type "button"
                   :class "btn btn-default" :value value
@@ -531,6 +624,22 @@ $(window).load(function () {
 (defn actus-button-wapl-link [actus value params]
   (actus-button-wapl actus value params {:class "btn btn-link"}))
 
+;; END Actus button functional
+;;..............................................................................
+
+
+;; END ACTUS
+;;..................................................................................................
+
+
+
+;;**************************************************************************************************
+;;* BEGIN Url tools
+;;* tag: <url>
+;;*
+;;* description: Функционал для работы с url
+;;*
+;;**************************************************************************************************
 
 ;; :params
 ;; :uri "/content"
@@ -563,9 +672,17 @@ $(window).load(function () {
     url-str
     (str url-str "&" (url-encode add-params))))
 
+;; END Url tools
+;;..................................................................................................
 
+;;**************************************************************************************************
+;;* BEGIN INPUT ELEMENTS
+;;* tag: <inputs>
+;;*
+;;* description: Элементы ввода форм
+;;*
+;;**************************************************************************************************
 
-;; INPUT ELEMENTS BEGIN ---------------------------------------------------------------------------
 
 (defn get-parametr [request p-name]
   (-> request :params p-name))
@@ -573,7 +690,6 @@ $(window).load(function () {
 (defn a-hidden-field [request p-name]
   (hidden-field {} p-name (get-parametr request p-name)))
 
-;; INPUT ELEMENTS END -----------------------------------------------------------------------------
 
 (defn actus-hidden-field [params attrs id default-value]
   (let [{value id :or {value default-value}} params]
@@ -587,16 +703,23 @@ $(window).load(function () {
   (let [{value id :or {value default-value}} params]
     (text-area (merge {:class "form-control"} attrs) id value)))
 
+;; END INPUT ELEMENTS
+;;..................................................................................................
 
 
+;;**************************************************************************************************
+;;* BEGIN LAYOUT ELEMENTS
+;;* tag: <layout>
+;;*
+;;* description: Элементы для разметки
+;;*
+;;**************************************************************************************************
 
-
-
-
-
-
-
-;; LAYOUT -----------------------------------------------
+;;------------------------------------------------------------------------------
+;; BEGIN: Some layout macross
+;; tag: <layout>
+;; description: Макросы для разметки
+;;------------------------------------------------------------------------------
 
 (defmacro div-bs-docs-section [& body]
   `[:div {:class "bs-docs-section"}  ~@body] )
@@ -613,7 +736,14 @@ $(window).load(function () {
 (defmacro div-form-horizontal [& body]
   `[:div {:class "form-horizontal"} ~@body] )
 
-;; ROW --------------------------------------------------
+;; END Some layout macross
+;;..............................................................................
+
+;;------------------------------------------------------------------------------
+;; BEGIN: ROW LAYOUT
+;; tag: <row>
+;; description:
+;;------------------------------------------------------------------------------
 
 (defn page-row- [cols & body]
   (into (div-col-lg cols) body))
@@ -621,7 +751,15 @@ $(window).load(function () {
 (defmacro page-row [col-lg & body]
   (apply page-row- (into [col-lg] body)))
 
-;; FORM -------------------------------------------------
+;; END ROW LAYOUT
+;;..............................................................................
+
+
+;;------------------------------------------------------------------------------
+;; BEGIN: Form layouts
+;; tag: <form layouts>
+;; description: Элементы разметки для формы
+;;------------------------------------------------------------------------------
 
 (defn div-form- [legend & body]
   (div-well_bs-component
@@ -655,8 +793,17 @@ $(window).load(function () {
     input ;;[:input {:type "text" :class "form-control" :id "inputEmail" :placeholder "Email"}]
     ]])
 
+;; END Form layouts
+;;..............................................................................
 
-;; MESSAGE BOXES ---------------------------------------
+
+
+;;------------------------------------------------------------------------------
+;; BEGIN: Message boxes
+;; tag: <messagebox>
+;; description: Рамки вывода различных сообщений
+;;------------------------------------------------------------------------------
+
 (defn alert- [alert-type col-lg message-body]
   (let [a-type  (or (alert-type {:warning "alert-warning"
                                  :danger "alert-danger"
@@ -673,46 +820,60 @@ $(window).load(function () {
     (alert- alert-type 12 message-body)
     )))
 
+;; END Message boxes
+;;..............................................................................
+
+;; END LAYOUT ELEMENTS
+;;..................................................................................................
 
 
 
-;; ENTITY MAPPING -------------------------------------
-
-(def test-entity {:id 0
-                  :keyname "Keyname entity"
-                  :num 10
-                  :somevalue ""
-                  :description "some description entity...."})
-
-(def test-form {:ids "1"
-                :keyname "Keyname form"
-                :num "100"
-                :description "some description form ...."})
+;;**************************************************************************************************
+;;* BEGIN Entity mapping and convertation
+;;* tag: <entyty map>
+;;*
+;;* description: Функционал для мапирования и конвертации форм
+;;*
+;;**************************************************************************************************
 
 
-(def form-<map>-entity
-  [
-   {:e :id
-    :f :ids
-    :f-<-e str
-    :f->-e #(Integer/parseInt %)
-    :e-fn-rm? empty?
-    }
+;; Расскоментировать для тестов и отладки
+(comment
+  (def test-entity {:id 0
+                    :keyname "Keyname entity"
+                    :num 10
+                    :somevalue ""
+                    :description "some description entity...."})
 
-   {:e :keyname
-    :f :keyname
-    :f-<-e str
-    :f->-e str
-    }
+  (def test-form {:ids "1"
+                  :keyname "Keyname form"
+                  :num "100"
+                  :description "some description form ...."})
 
-   {:e :description
-    :f :description
-    :f-<-e str
-    :f->-e str
-    }
 
-   ])
+  (def form-<map>-entity
+    [
+     {:e :id
+      :f :ids
+      :f-<-e str
+      :f->-e #(Integer/parseInt %)
+      :e-fn-rm? empty?
+      }
 
+     {:e :keyname
+      :f :keyname
+      :f-<-e str
+      :f->-e str
+      }
+
+     {:e :description
+      :f :description
+      :f-<-e str
+      :f->-e str
+      }
+
+     ])
+  )
 
 (defn fill-form-<map>-entity [fme form direction entity]
   (let [[to-k f-conv-k from-k
@@ -745,7 +906,6 @@ $(window).load(function () {
               )))
      )))
 
-
 (defn try-fill-entity [{params :params :as request} fme entity entity-key-in-request]
   (let [{entity :entity errors :errors} (fill-form-<map>-entity fme params :->- entity)]
     (println entity errors)
@@ -760,7 +920,6 @@ $(window).load(function () {
                 errors)
         )))
 
-
 (defn try-fill-form [{params :params :as request} fme entity]
   (let [{new-params :form errors :errors} (fill-form-<map>-entity fme params :-<- entity)]
     (if (empty? errors) (assoc request :params new-params)
@@ -771,8 +930,6 @@ $(window).load(function () {
                 (add-errors request errors)
                 errors )
         )))
-
-
 
 (defn do-form->- [request functions]
   ;;(println "start do-form:")
@@ -798,15 +955,19 @@ $(window).load(function () {
     `(fn [~rqname]
        (do-form->- ~rqname [ ~@body ]))))
 
+;; END Entity mapping and convertation
+;;..................................................................................................
 
-;; TIMESTAMP
-(def formatter-yyyy-MM-dd-HH:mm:ss (tf/formatter "yyyy-MM-dd HH:mm:ss"))
 
-(def formatter-yyyy-MM-dd (tf/formatter "yyyy-MM-dd"))
 
-(def formatter-HH:mm:ss (tf/formatter "HH:mm:ss"))
+;;**************************************************************************************************
+;;* BEGIN Dialogs
+;;* tag: <dialogs>
+;;*
+;;* description: Функции для работы с диалогами
+;;*
+;;**************************************************************************************************
 
-;; Dialogs
 
 (defn dialog-test []
   [:div
@@ -836,6 +997,12 @@ success: function(data) {
 $( \"#" div-id "\" ).html( \"<div id='" div-id "' >\" + data + \"</div>\" );
 }})};"
 )))
+
+;;------------------------------------------------------------------------------
+;; BEGIN: Ajax dialog
+;; tag: <ajax dialog>
+;; description: Диалог с AJAX подгрузкой
+;;------------------------------------------------------------------------------
 
 (defn button-show-dialog [caption dialog-id url]
   [:button {:type "button" :class "btn btn-default"
@@ -868,9 +1035,16 @@ $(\"#" e-tag-id-s "\").modal();
      ]))
 
 (defn button-close-modal [caption]
-  [:button {:type "button" :class "btn btn-default" :data-dismiss "modal" :aria-hidden "true"} caption])
+  [:Button {:type "button" :class "btn btn-default" :data-dismiss "modal" :aria-hidden "true"} caption])
+
+;; END Ajax dialog
+;;..............................................................................
 
 
+
+
+;; END Dialogs
+;;..................................................................................................
 
 
 
