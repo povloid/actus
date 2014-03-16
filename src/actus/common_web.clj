@@ -29,8 +29,7 @@
 (defn get-param [{params :params} k default]
   (let [{n k :or {n default}} params] n))
 
-
-(defn js-text-compressor
+(defn js-text-compressor-
   "Сжимает текст в одну строчку. Убирает пробелы и переносы, для коментариев надо применять /*....*/"
   [text]
   (-> text
@@ -38,27 +37,16 @@
       (clojure.string/replace #"\s+" " ")
       ))
 
-(defn js-text-compressor-no
+(defmacro js-text-compressor [& text]
+  (->> (if (> (count text) 1)
+         (map #(if (string? %) (js-text-compressor- %) %) text)
+         `[(js-text-compressor- text)])
+       (into (list str))
+       reverse))
+
+(defmacro js-text-compressor-no
   "Unformatted mock"
-  [text] text)
-
-(defn js-text-compressor-map-str
-  "[ \" alert   ('\" :key  \"')  ;  \" ... ] => [ \"alert('\" :key  \"');\" ... ]"
-  [x]
-  (map
-   #(if (string? %) (js-text-compressor %) %)
-   x))
-
-(defn js-text-compressor-coll-as-str
-  "(js-text-compressor-coll-as-str [ \"alert('\" :key  \"');\" ... ] {:key \"!!!\", ... } )
-=> \"alert('!!!');....\" "
-  [c m]
-  (->> (replace m c)
-       (apply str)))
-
-
-
-
+  [& body] `(str ~@body))
 
 (defn js-e-set-1 [id]
   (str " this.form.elements['" (name id) "'].value = 1;"))
@@ -332,6 +320,55 @@
 
 
 ;; WEB FORMS
+
+;; ВАЖНЫЕ ПЕРЕМЕННЫЕ
+(def actus-keyword :actus)
+(def actus-keyword-s (name actus-keyword))
+
+(def last-actus-keyword :last-actus)
+(def actus-errors-keyword :actus-errors)
+(def actus-has-es-keyword :actus-has-es)
+(def actus-alerts-keyword :actus-alerts)
+
+
+;; Добавление ошибки
+(defn add-error [{actus-errors actus-errors-keyword :or {actus-errors []} :as request} error]
+  (assoc request actus-errors-keyword (conj actus-errors error)))
+
+(defn add-errors [{actus-errors actus-errors-keyword :or {actus-errors []} :as request} errors]
+  (assoc request actus-errors-keyword (into actus-errors errors)))
+
+(defn actus-add-alert
+  "Добавляет сообщение в массив сообщений по ключу :actus-alerts
+Пример:
+:update! #(vector :form (-> %
+                            (cw/actus-add-alert :info \"info\")
+                            (cw/actus-add-alert :danger \"danger!\")
+                            (cw/actus-add-alert :info \"info\")
+                            (cw/actus-add-alert :info \"info\")
+                            (cw/actus-add-alert :warning \"warning\")
+                            (cw/actus-add-alert :success \"success\")
+                            (cw/actus-add-e-has :keyname :error)
+                            (cw/actus-add-e-has :inputEmail :warning)
+                            (cw/actus-add-e-has :inputEmail nil) ;; Отключает
+                         ))"
+  [{actus-alerts actus-alerts-keyword :or {actus-alerts []} :as request}
+   alert-type message]
+  (assoc request actus-alerts-keyword
+         (conj actus-alerts [alert-type message])))
+
+
+(defn actus-add-e-has
+  "Подсветка элемента по ключу id"
+  [{actus-has-es actus-has-es-keyword :or {actus-has-es {}} :as request}
+   id has-es-type]
+  (assoc request actus-has-es-keyword (assoc actus-has-es id has-es-type)))
+
+
+
+
+;; ACTUS-CORE ---------------------------------------------------------------------------
+
 (defn actus-in-form
   " Главная функция для отработки событий
 Параметр:
@@ -348,7 +385,7 @@
 :action8 #(vector :response \"some body\" %)
 
 3. render-form-fm - Функция рендер формы вида (fn [request] .....)"
-  [{{actus :actus :as params} :params :as request}
+  [{{actus actus-keyword :as params} :params :as request}
    actus-fns
    render-form-fm]
 
@@ -395,23 +432,22 @@
 
 
 
-(def actus-form-head
+(defn actus-form-head [id]
 
   "Заголовок, вынесенный в def для оптимизации по скорости"
   ;;$(function() {alert('!1');});
   ;;$(function() {alert('!2');});
   ;;document.forms['form1'].actus.value=null; /* неработает в ишаке */
   ;;window.onload=function(){document.forms['" (name id) "'].actus.value=null;}
-
-  (js-text-compressor-map-str
-   (list "
-
+  (let [ids (name id)]
+    (js-text-compressor
+     "
 $(function(){
 
-document.forms['" :form-id "'].actus.value=null;
+document.forms['" ids "']." actus-keyword-s ".value=null;
 
-$('#" :form-id  "').focusin(function(){
-  document.forms['" :form-id "'].actus.value=null;
+$('#" ids  "').focusin(function(){
+  document.forms['" ids "']." actus-keyword-s ".value=null;
 });
 
 $(window).load(function () {
@@ -425,49 +461,20 @@ $(window).load(function () {
 ")))
 
 
-(defn actus-add-alert
-  "Добавляет сообщение в массив сообщений по ключу :actus-alerts
-Пример:
-:update! #(vector :form (-> %
-                            (cw/actus-add-alert :info \"info\")
-                            (cw/actus-add-alert :danger \"danger!\")
-                            (cw/actus-add-alert :info \"info\")
-                            (cw/actus-add-alert :info \"info\")
-                            (cw/actus-add-alert :warning \"warning\")
-                            (cw/actus-add-alert :success \"success\")
-                            (cw/actus-add-e-has :keyname :error)
-                            (cw/actus-add-e-has :inputEmail :warning)
-                            (cw/actus-add-e-has :inputEmail nil) ;; Отключает
-                         ))"
-  [{actus-alerts :actus-alerts :or {actus-alerts []} :as request}
-   alert-type message]
-  (assoc request :actus-alerts
-         (conj actus-alerts [alert-type message])))
-
-(defn actus-add-e-has
-  "Подсветка элемента по ключу id"
-  [{actus-has-es :actus-has-es :or {actus-has-es {}} :as request}
-   id has-es-type]
-  (assoc request :actus-has-es (assoc actus-has-es id has-es-type)))
-
-
 (defn actus-form-to [{{ret-url :ret-url :as params}
                       :params :as request}
                      id [method action] body]
   [:div
-   (javascript-tag (js-text-compressor-coll-as-str
-                    actus-form-head {:form-id (name id)}))
+   (javascript-tag (actus-form-head id))
 
    (-> (form-to {:id id} [method action]
 
                 (if (nil? ret-url) nil
                     (hidden-field {} :ret-url ret-url))
 
-                (hidden-field {} :actus nil)
+                (hidden-field {} actus-keyword nil) )
 
-                )
-
-       (into (->> request :actus-alerts
+       (into (->> request actus-alerts-keyword
                   (map #(let [[k message] %]
                           (alert-page k message)
                           ))
@@ -482,10 +489,13 @@ $(window).load(function () {
   )
 
 
+;; BUTTONS ------------------------------------------------------------------------------------------
+
 (defn actus-button [actus value attrs]
   [:input (merge {:type "button"
                   :class "btn btn-default" :value value
-                  :onclick (str "this.form.elements['actus'].value='" (name actus) "';this.form.submit();")}
+                  :onclick (str "this.form.elements['" actus-keyword-s "'].value='"
+                                (name actus) "';this.form.submit();")}
                  attrs)
    ])
 
@@ -526,13 +536,13 @@ $(window).load(function () {
 ;; :uri "/content"
 ;; :query-string "actus=action3&id=&table_news_0_page=2&table_news_0_size=5&table_news_0_sortcol_id=id&table_news_0_sorttype_id=DESC&table_news_0_sortcol_cdate=NONE&table_news_0_sorttype_cdate=ASC"
 
-(defn go-to-url [{{actus :actus :as params} :params uri :uri query-string :query-string}
+(defn go-to-url [{{actus actus-keyword :as params} :params uri :uri query-string :query-string}
                  url-string add-params add-ret-params]
-  (letfn [(actus-str-fn [x] (str "actus=" (name x)))]
+  (letfn [(actus-str-fn [x] (str actus-keyword-s "=" (name x)))]
     (let [actus-str (actus-str-fn actus)
           new-query (url uri (-> params
-                                 (dissoc :actus)
-                                 (assoc :last_actus actus)
+                                 (dissoc actus-keyword)
+                                 (assoc last-actus-keyword actus)
                                  (merge add-ret-params)
                                  ))
           ]
@@ -552,8 +562,6 @@ $(window).load(function () {
   (if (empty? add-params)
     url-str
     (str url-str "&" (url-encode add-params))))
-
-
 
 
 
@@ -629,7 +637,7 @@ $(window).load(function () {
 
 ;; FORM GROUP ------------------------------------------
 
-(defn e-has-? [{actus-has-es :actus-has-es} s id]
+(defn e-has-? [{actus-has-es actus-has-es-keyword} s id]
   (str s
        (if (nil? actus-has-es) ""
            (let [es (actus-has-es id)]
@@ -669,8 +677,6 @@ $(window).load(function () {
 
 
 ;; ENTITY MAPPING -------------------------------------
-
-
 
 (def test-entity {:id 0
                   :keyname "Keyname entity"
@@ -742,14 +748,15 @@ $(window).load(function () {
 
 (defn try-fill-entity [{params :params :as request} fme entity entity-key-in-request]
   (let [{entity :entity errors :errors} (fill-form-<map>-entity fme params :->- entity)]
+    (println entity errors)
     (if (empty? errors) (assoc request entity-key-in-request entity)
         (reduce (fn [request [input-id ex-text ex-message]]
                   (-> request
                       (actus-add-alert :danger (str ex-text ": " ex-message))
-                      (actus-add-e-has input-id :error)                      
-                      ;;(#(do (println %) %))
+                      (actus-add-e-has input-id :error)
+                      ;;(#(do (println ">>>" %) %))
                       ))
-                (assoc request :errors (merge (request :errors) :errors)) ;;<---- Надо проработать :errors 
+                (add-errors request errors) ;;<----
                 errors)
         )))
 
@@ -761,7 +768,8 @@ $(window).load(function () {
                   (-> request
                       (actus-add-alert :danger (str ex-text ": " ex-message))
                       ))
-                request errors )
+                (add-errors request errors)
+                errors )
         )))
 
 
@@ -771,7 +779,7 @@ $(window).load(function () {
   (vector :form
           (loop [step 1 [request error] [request false] do-fn (first functions) functions-list (rest functions)]
             ;;(println step)
-            (cond (not (empty? (:errors request))) request ;; если были ошибки от конвертатора
+            (cond (not (empty? (actus-errors-keyword request))) request ;; если были ошибки от конвертатора
                   (true? error) request
                   (nil? do-fn) request
                   :else (recur (inc step)
@@ -819,7 +827,7 @@ $(window).load(function () {
 
 (defn ajax-fn-udate-div [f-name url pars div-id]
   (javascript-tag
-   (str
+   (js-text-compressor
     "function " f-name "()
 $.ajax({
 url: \"" url "\",
@@ -849,15 +857,14 @@ $( \"#" div-id "\" ).html( \"<div id='" div-id "' >\" + data + \"</div>\" );
 
      (javascript-tag
       (js-text-compressor
-       (str
-        "function update_" e-tag-id-s "(url){
+       "function update_" e-tag-id-s "(url){
 $.ajax({
 url: url,
 success: function(data){
 $(\"#" body-id-s "\").html(\"<div id='" body-id-s "' >\" + data + \"</div>\");
 $(\"#" e-tag-id-s "\").modal();
 }});}"
-)))
+))
      ]))
 
 (defn button-close-modal [caption]
