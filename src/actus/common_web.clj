@@ -80,6 +80,70 @@
 (defn js-e-dec [id]
   (str " v = this.form.elements['" (name id) "'].value; if(v > 1) this.form.elements['" (name id) "'].value = parseInt(v) - 1;"))
 
+
+;;------------------------------------------------------------------------------
+;; BEGIN: AJAX
+;; tag: <ajax>
+;; description: ajax функционал
+;;------------------------------------------------------------------------------
+
+(defn ajax-udate-div [url div-id]
+  (js-text-compressor "
+$.ajax({
+url: \"" (str url) "\",
+success: function(data) {
+$( \"#" (name div-id) "\" ).html(data);
+}});"
+))
+
+(defn ajax-fn-udate-div [f-name url div-id]
+  (js-text-compressor
+   "function " f-name "(){
+$.ajax({
+url: \"" (str url) "\",
+success: function(data) {
+$( \"#" (name div-id) "\" ).html(data);
+}})};"
+))
+
+(defn ajax-fn-udate-div-p-url [f-name div-id]
+  (js-text-compressor
+   "function " f-name "(url){
+$.ajax({
+url: url,
+success: function(data) {
+$( \"#" (name div-id) "\" ).html(data);
+}})};"
+))
+
+
+(defn ajax-fn-udate-div-au [f-name url div-id after-update-js-script]
+  (js-text-compressor
+   "function " f-name "(){
+$.ajax({
+url: \"" (str url) "\",
+success: function(data) {
+$( \"#" (name div-id) "\" ).html(data);
+" after-update-js-script "
+}})};"
+))
+
+(defn ajax-fn-udate-div-au-p-url [f-name div-id after-update-js-script]
+  (js-text-compressor
+   "function " f-name "(url){
+$.ajax({
+url: url,
+success: function(data) {
+$( \"#" (name div-id) "\" ).html(data);
+" after-update-js-script "
+}})};"
+))
+
+
+;; END AJAX
+;;..............................................................................
+
+
 ;; END Javascript tools
 ;;..................................................................................................
 
@@ -711,7 +775,7 @@ $(window).load(function () {
 ;; description: Элемент выгрузки фалов
 ;;------------------------------------------------------------------------------
 
-(defn actus-file-upload [id url-str header-params]
+(defn actus-file-upload [id url-str header-params update-javascript]
   (let [ids (name id)]
     [:div {:class "input-group"}
      [:span {:class "input-group-btn"}
@@ -727,37 +791,45 @@ $(window).load(function () {
 
 $('#" ids "').change(function(){
 
-var progressbar = $('#" ids "-progress');
+progressbar = $('#" ids "-progress');
 progressbar.css('width','0%');
-
-part1 = 100 / this.files.length;
+progressbar.html('0%');
 
 var i = 0;
 for(i = 0; i < this.files.length; i++) {
 file = this.files[i];
 
-var pr = (i + 1) * part1;
-
 var x = new XMLHttpRequest();
 
-x.addEventListener('progress', function(){}, false);
-x.addEventListener('load', function(){progressbar.css('width','' + pr + '%');}, false);
-x.addEventListener('error', function(){}, false);
-x.addEventListener('abort', function(){}, false);
+x.upload.onprogress=function(e){
+if (e.lengthComputable) {
+var percentComplete = Math.round(100 * e.loaded / e.total );
+progressbar.html(percentComplete + '%');
+progressbar.css('width','' + percentComplete + '%');
+} else {
 
-x.open('POST', '" url-str "', false);
+}
+};
+
+x.upload.onload=function(e){
+progressbar.css('width','100%');
+progressbar.html('100%');
+" update-javascript "};
+
+
+x.open('POST', '" url-str "');
 x.setRequestHeader('filename', encodeURIComponent(file.name));"
 
 (reduce
  #(str % "x.setRequestHeader('" (name %2) "', '" (%2 header-params)  "');")
  ""
- (keys header-params))
-
-"x.send(file);
+ (keys header-params)) "
+x.send(file);
 }
 
 this.value = '';
 progressbar.css('width','0%');
+
 
 });
 "))
@@ -1052,18 +1124,6 @@ progressbar.css('width','0%');
    ])
 
 
-(defn ajax-fn-udate-div [f-name url pars div-id]
-  (javascript-tag
-   (js-text-compressor
-    "function " f-name "()
-$.ajax({
-url: \"" url "\",
-data: " pars ",
-success: function(data) {
-$( \"#" div-id "\" ).html( \"<div id='" div-id "' >\" + data + \"</div>\" );
-}})};"
-)))
-
 ;;------------------------------------------------------------------------------
 ;; BEGIN: Ajax dialog
 ;; tag: <ajax dialog>
@@ -1087,17 +1147,13 @@ $( \"#" div-id "\" ).html( \"<div id='" div-id "' >\" + data + \"</div>\" );
         [:div {:class "modal-body"}
          [:div {:id body-id-s}] [:hr] dialog-footer]
         ]]]
-
+     
      (javascript-tag
-      (js-text-compressor
-       "function update_" e-tag-id-s "(url){
-$.ajax({
-url: url,
-success: function(data){
-$(\"#" body-id-s "\").html(\"<div id='" body-id-s "' >\" + data + \"</div>\");
-$(\"#" e-tag-id-s "\").modal();
-}});}"
-))
+      (ajax-fn-udate-div-au-p-url (str "update_" e-tag-id-s)
+                                  body-id-s
+                                  (str "$(\"#" e-tag-id-s "\").modal();")))
+
+
      ]))
 
 (defn button-close-modal [caption]
