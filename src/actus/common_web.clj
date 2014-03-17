@@ -60,6 +60,7 @@
       ))
 
 (defmacro js-text-compressor [& text]
+  (println "!js-text-compressor")
   (->> (if (> (count text) 1)
          (map #(if (string? %) (js-text-compressor- %) %) text)
          `[(js-text-compressor- text)])
@@ -703,6 +704,71 @@ $(window).load(function () {
   (let [{value id :or {value default-value}} params]
     (text-area (merge {:class "form-control"} attrs) id value)))
 
+
+;;------------------------------------------------------------------------------
+;; BEGIN: File uploading
+;; tag: <file upload>
+;; description: Элемент выгрузки фалов
+;;------------------------------------------------------------------------------
+
+(defn actus-file-upload [id url-str header-params]
+  (let [ids (name id)]
+    [:div {:class "input-group"}
+     [:span {:class "input-group-btn"}
+      [:span {:class "btn btn-default btn-file"}
+       "Открыть..."
+       (file-upload {:multiple true } id)]]
+     [:div {:class "progress progress-striped" :style "margin: 10px"}
+      [:div {:id (str ids "-progress") :class "progress-bar" :style "width: 0%"}
+       ]]
+
+     (javascript-tag
+      (js-text-compressor "
+
+$('#" ids "').change(function(){
+
+var progressbar = $('#" ids "-progress');
+progressbar.css('width','0%');
+
+part1 = 100 / this.files.length;
+
+var i = 0;
+for(i = 0; i < this.files.length; i++) {
+file = this.files[i];
+
+var pr = (i + 1) * part1;
+
+var x = new XMLHttpRequest();
+
+x.addEventListener('progress', function(){}, false);
+x.addEventListener('load', function(){progressbar.css('width','' + pr + '%');}, false);
+x.addEventListener('error', function(){}, false);
+x.addEventListener('abort', function(){}, false);
+
+x.open('POST', '" url-str "', false);
+x.setRequestHeader('filename', encodeURIComponent(file.name));"
+
+(reduce
+ #(str % "x.setRequestHeader('" (name %2) "', '" (%2 header-params)  "');")
+ ""
+ (keys header-params))
+
+"x.send(file);
+}
+
+this.value = '';
+progressbar.css('width','0%');
+
+});
+"))
+
+]))
+
+
+
+;; END File uploading
+;;..............................................................................
+
 ;; END INPUT ELEMENTS
 ;;..................................................................................................
 
@@ -1045,12 +1111,6 @@ $(\"#" e-tag-id-s "\").modal();
 
 ;; END Dialogs
 ;;..................................................................................................
-
-
-
-
-
-
 
 
 
