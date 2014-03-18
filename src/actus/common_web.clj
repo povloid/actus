@@ -811,6 +811,17 @@ progressbar.css('width','' + percentComplete + '%');
 }
 };
 
+x.onreadystatechange = function() {
+if (x.readyState != 4) return;
+if (x.status == 200) {
+} else {
+progressbar.css('width','0%');
+progressbar.html('0%');
+alert(x.statusText +  ' Возможно размер файла слишком велик!');
+}
+};
+
+
 x.upload.onload=function(e){
 progressbar.css('width','100%');
 progressbar.html('100%');
@@ -836,10 +847,69 @@ progressbar.css('width','0%');
 
 ]))
 
+;;------------------------------------------------------------------------------
+;; BEGIN: File uploading tools
+;; tag: <file upload tools>
+;; description: Функции для выгрузки файлов
+;;------------------------------------------------------------------------------
+
+(defn upload-file [{{filename "filename"} :headers body :body
+                    content-length :content-length :as request}
+                   & [buffer-size dir max-length]]
+  (let [file-name (ring.util.codec/url-decode filename)
+        buf-size (or buffer-size (* 1024 1024))
+        buf (byte-array buf-size)
+        tmp-path (str (or dir "/tmp") "/" file-name)
+        tmp (clojure.java.io/file tmp-path)]
+
+    (println "\nUploading file: " filename  " to: " tmp-path)
+
+    (if (>= content-length (or max-length (* 1024 1024)))
+      (throw (Exception. "Content lenght is very long!"))
+
+      (do
+        (clojure.java.io/make-parents tmp)
+        (with-open [in (clojure.java.io/input-stream body)
+                    out (clojure.java.io/output-stream tmp)]
+
+          ;; HARD VARIANT
+          ;; (loop [bytes-read (.read in buf 0 buf-size)]
+          ;;   (if (> bytes-read 0)
+          ;;     (do
+          ;;       (.write out buf 0 bytes-read)
+          ;;       (recur (.read in buf 0 buf-size)))
+          ;;     (do
+          ;;       (.close in)
+          ;;       (.close out)
+          ;;       {:file-name-utf8 file-name :file-name-web filename})
+          ;;     ))
+
+          (try
+            (do
+              (clojure.java.io/copy in out :buffer-size buf-size)
+              (.close in)
+              (.close out)
+              {:file-name-utf8 file-name :file-name-web filename})
+            (catch Exception ex
+              (do
+                (.close in)
+                (.close out)
+                (throw ex) )))
+          )))))
 
 
+(defn make-date-dirs [base-dir suffix]
+  (str base-dir (tf/unparse (tf/formatter  "/yyyy/MM/dd/") (tco/now)) suffix))
+
+
+
+
+
+;; END File uploading tools
+;;..............................................................................
 ;; END File uploading
 ;;..............................................................................
+
 
 ;; END INPUT ELEMENTS
 ;;..................................................................................................
@@ -1147,7 +1217,7 @@ progressbar.css('width','0%');
         [:div {:class "modal-body"}
          [:div {:id body-id-s}] [:hr] dialog-footer]
         ]]]
-     
+
      (javascript-tag
       (ajax-fn-udate-div-au-p-url (str "update_" e-tag-id-s)
                                   body-id-s
@@ -1168,6 +1238,9 @@ progressbar.css('width','0%');
 ;; END Dialogs
 ;;..................................................................................................
 
+
+
+;;..................................................................................................
 
 
 
