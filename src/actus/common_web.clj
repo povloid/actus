@@ -854,11 +854,12 @@ progressbar.css('width','0%');
 
 (defn upload-file [{{filename "filename"} :headers body :body
                     content-length :content-length :as request}
-                   & [buffer-size dir max-length]]
+                   & [buffer-size base-dir next-dir max-length]]
   (let [file-name (ring.util.codec/url-decode filename)
         buf-size (or buffer-size (* 1024 1024))
         ;;buf (byte-array buf-size)
-        tmp-path (str (or dir "/tmp") "/" file-name)
+        tmp-next-path (str (or next-dir "") "/"  file-name)
+        tmp-path (str (or base-dir "/tmp") "/" (or next-dir "") "/" tmp-next-path)
         tmp (clojure.java.io/file tmp-path)]
 
     (println "\nUploading file: " filename  " to: " tmp-path)
@@ -888,7 +889,9 @@ progressbar.css('width','0%');
               (clojure.java.io/copy in out :buffer-size buf-size)
               (.close in)
               (.close out)
-              {:file-name-utf8 file-name :file-name-web filename})
+              {:path tmp-next-path
+               :urlpath (ring.util.codec/url-encode tmp-next-path)
+               :filename file-name})
             (catch Exception ex
               (do
                 (.close in)
@@ -898,7 +901,7 @@ progressbar.css('width','0%');
 
 
 (defn make-date-dirs [base-dir suffix]
-  (str base-dir (tf/unparse (tf/formatter  "/yyyy/MM/dd/") (tco/now)) suffix))
+  (str base-dir (tf/unparse (tf/formatter  "yyyy/MM/dd/") (tco/now)) suffix))
 
 
 
