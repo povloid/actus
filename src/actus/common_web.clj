@@ -116,7 +116,6 @@ $( \"#" (name div-id) "\" ).html(data);
 }})};"
 ))
 
-
 (defn ajax-fn-udate-div-au [f-name url div-id after-update-js-script]
   (js-text-compressor
    "function " f-name "(){
@@ -858,7 +857,7 @@ progressbar.css('width','0%');
                    & [buffer-size dir max-length]]
   (let [file-name (ring.util.codec/url-decode filename)
         buf-size (or buffer-size (* 1024 1024))
-        buf (byte-array buf-size)
+        ;;buf (byte-array buf-size)
         tmp-path (str (or dir "/tmp") "/" file-name)
         tmp (clojure.java.io/file tmp-path)]
 
