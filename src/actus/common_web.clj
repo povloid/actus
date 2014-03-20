@@ -852,14 +852,15 @@ progressbar.css('width','0%');
 ;; description: Функции для выгрузки файлов
 ;;------------------------------------------------------------------------------
 
-(defn upload-file [{{filename "filename"} :headers body :body
+(defn upload-file [{{filename "filename" typegroup "type-group" } :headers body :body
                     content-length :content-length :as request}
                    & [buffer-size base-dir next-dir max-length]]
   (let [file-name (ring.util.codec/url-decode filename)
+        type-group (Integer/parseInt typegroup)
         buf-size (or buffer-size (* 1024 1024))
         ;;buf (byte-array buf-size)
-        tmp-next-path (str (or next-dir "") "/"  file-name)
-        tmp-path (str (or base-dir "/tmp") "/" (or next-dir "") "/" tmp-next-path)
+        tmp-next-path (str (or next-dir "") "/" file-name)
+        tmp-path (str (or base-dir "/tmp") tmp-next-path)
         tmp (clojure.java.io/file tmp-path)]
 
     (println "\nUploading file: " filename  " to: " tmp-path)
@@ -891,7 +892,7 @@ progressbar.css('width','0%');
               (.close out)
               {:path tmp-next-path
                :urlpath (ring.util.codec/url-encode tmp-next-path)
-               :filename file-name})
+               :filename file-name :typegroup type-group})
             (catch Exception ex
               (do
                 (.close in)
@@ -901,7 +902,7 @@ progressbar.css('width','0%');
 
 
 (defn make-date-dirs [base-dir suffix]
-  (str base-dir (tf/unparse (tf/formatter  "yyyy/MM/dd/") (tco/now)) suffix))
+  (str base-dir (tf/unparse (tf/formatter "/yyyy/MM/dd") (tco/now)) suffix))
 
 
 
