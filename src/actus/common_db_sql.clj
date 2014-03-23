@@ -9,35 +9,16 @@
 
   )
 
-;; ADAPT-SQL-TYPES
-
-(defn adapt-row [adapter fn-num entity]
-  (reduce (fn [entity field]
-            (let [convert-fn  ((field adapter) fn-num) ]
-              (assoc entity field (convert-fn (field entity)))))
-          entity (keys adapter)))
-
-(defn adapt-rows [adapter fn-num entitys]
-  (map #(adapt-row adapter fn-num %) entitys))
-
-
 ;; COMMON FUNCTIONS ----------------------------------------------------
 
-(defn common-save
+
+(defn common-save-for-id
   "Сохранить сущность"
   [entity vals]
   (let [r (update entity (set-fields vals) (where (= :id (vals :id))))]
     (if (nil? r)
       (insert entity (values vals))
       r)) )
-
-(defn common-save-ad
-  "Сохранить сущность"
-  [entity vals adapter]
-  (->> vals
-      (adapt-row adapter 1)
-      (common-save entity)
-      (adapt-row adapter 0) )) ;; После операции тоже нужна конвертация
 
 (defn common-delete*
   "Сохранить сущность"
@@ -54,11 +35,6 @@
   [entity id]
   (first (select entity (where (= :id id)))) )
 
-(defn common-find-ad
-  "Найти сущность по :id"
-  [entity id adapter]
-  (adapt-row adapter 0 (common-find entity id)))
-
 (defn common-count
   "Количество всех элементов"
   [entity]
@@ -68,11 +44,6 @@
   "Выполнить запрос"
   [query]
   (exec query))
-
-(defn common-exec-ad
-  "Выполнить запрос"
-  [query adapter]
-  (adapt-rows adapter 0 (common-exec query)))
 
 ;; PAGES AND SORTING --------------------------------------------------
 (defn common-page
@@ -89,6 +60,24 @@
   "Предикат для фильтрования"
   [query key val]
   (-> query (where (= key val))) )
+
+
+;;------------------------------------------------------------------------------
+;; BEGIN: Common predicates
+;; tag: <common predicates>
+;; description: Общие предикаты
+;;------------------------------------------------------------------------------
+
+(defn where-eq-for-fields [entity vals fields]
+  (reduce (fn [entity k] (where entity (= k (k vals)))) entity fields))
+
+(defn where-eq-for-each-field [entity vals]
+  (where-eq-for-fields entity vals (keys vals)))
+
+;; END Common predicates
+;;..............................................................................
+
+
 
 
 ;; ---------------------------------------------------------------------

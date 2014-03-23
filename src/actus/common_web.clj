@@ -12,6 +12,7 @@
             [clj-time.core :as tco]
             [clj-time.format :as tf]
             [clj-time.coerce :as tc]
+            [clj-time.local :as tl]
 
             ))
 
@@ -33,6 +34,13 @@
 (def formatter-yyyy-MM-dd (tf/formatter "yyyy-MM-dd"))
 
 (def formatter-HH:mm:ss (tf/formatter "HH:mm:ss"))
+
+
+(def formatter-local-yyyy-MM-dd-HH:mm:ss (tf/formatter-local "yyyy-MM-dd HH:mm:ss"))
+
+(def formatter-local-yyyy-MM-dd (tf/formatter-local "yyyy-MM-dd"))
+
+(def formatter-local-HH:mm:ss (tf/formatter-local "HH:mm:ss"))
 
 ;; END FORMATTERS
 ;;..................................................................................................
@@ -754,7 +762,6 @@ $(window).load(function () {
 (defn a-hidden-field [request p-name]
   (hidden-field {} p-name (get-parametr request p-name)))
 
-
 (defn actus-hidden-field [params attrs id default-value]
   (let [{value id :or {value default-value}} params]
     (hidden-field attrs id value)))
@@ -902,7 +909,12 @@ progressbar.css('width','0%');
 
 
 (defn make-date-dirs [base-dir suffix]
-  (str base-dir (tf/unparse (tf/formatter "/yyyy/MM/dd") (tco/now)) suffix))
+  (str base-dir (tf/unparse
+                 ;; (tf/formatter "/yyyy/MM/dd/HH/mm/ss")
+                 (tf/formatter-local "/yyyy/MM/dd/HH/mm/ss")
+                 ;;(tco/now)
+                 (tl/local-now)
+                 ) suffix))
 
 
 
@@ -1003,6 +1015,7 @@ progressbar.css('width','0%');
    [:div {:class (str "col-lg-" col-lg-input)}
     input ;;[:input {:type "text" :class "form-control" :id "inputEmail" :placeholder "Email"}]
     ]])
+
 
 ;; END Form layouts
 ;;..............................................................................
