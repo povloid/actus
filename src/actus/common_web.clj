@@ -95,45 +95,31 @@
 ;; description: ajax функционал
 ;;------------------------------------------------------------------------------
 
-(defn ajax-udate-div [url div-id]
+(defn ajax-udate-div-ua [url div-id after-update-js-script]
   (js-text-compressor "
 $.ajax({
 url: \"" (str url) "\",
 success: function(data) {
 $( \"#" (name div-id) "\" ).html(data);
+" after-update-js-script "
 }});"
 ))
 
-(defn ajax-fn-udate-div [f-name url div-id]
-  (js-text-compressor
-   "function " f-name "(){
-$.ajax({
-url: \"" (str url) "\",
-success: function(data) {
-$( \"#" (name div-id) "\" ).html(data);
-}})};"
-))
-
-(defn ajax-fn-udate-div-p-url [f-name div-id]
-  (js-text-compressor
-   "function " f-name "(url){
-$.ajax({
-url: url,
-success: function(data) {
-$( \"#" (name div-id) "\" ).html(data);
-}})};"
-))
+(defn ajax-udate-div [url div-id]
+  (ajax-udate-div-ua url div-id ""))
 
 (defn ajax-fn-udate-div-au [f-name url div-id after-update-js-script]
   (js-text-compressor
-   "function " f-name "(){
-$.ajax({
-url: \"" (str url) "\",
-success: function(data) {
-$( \"#" (name div-id) "\" ).html(data);
-" after-update-js-script "
-}})};"
+   "function " f-name "(){ " (ajax-udate-div-ua url div-id after-update-js-script)  " };"
 ))
+
+(defn ajax-fn-udate-div [f-name url div-id]
+  (ajax-fn-udate-div-au f-name url div-id ""))
+
+(defmacro defn-js-fn-and-call [js-fn f-name & pars]
+  `(str (~js-fn ~f-name ~@pars) ";" ~f-name "();"))
+
+;; dinamical url as js function param -----------------------------------------
 
 (defn ajax-fn-udate-div-au-p-url [f-name div-id after-update-js-script]
   (js-text-compressor
@@ -145,6 +131,15 @@ $( \"#" (name div-id) "\" ).html(data);
 " after-update-js-script "
 }})};"
 ))
+
+(defn ajax-fn-udate-div-p-url [f-name div-id]
+  (ajax-fn-udate-div-au-p-url f-name div-id ""))
+
+
+
+
+
+
 
 
 ;; END AJAX
@@ -846,12 +841,12 @@ alert(x.statusText +  ' Возможно размер файла слишком 
 }
 };
 
-
 x.upload.onload=function(e){
 progressbar.css('width','100%');
 progressbar.html('100%');
-" update-javascript "};
+};
 
+x.upload.onloadend=function(e){" update-javascript "};
 
 x.open('POST', '" url-str "');
 x.setRequestHeader('filename', encodeURIComponent(file.name));"
