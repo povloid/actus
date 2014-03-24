@@ -172,7 +172,8 @@ $( \"#" (name div-id) "\" ).html(data);
 
 (defn html-table
   "Генерирует HTML таблицу"
-  [{e-group-id :e-group-id columns :columns items :items}]
+  [{e-group-id :e-group-id columns :columns items :items
+    :or {e-group-id :simple-table}}]
   [:div {:class "bs-example table-responsive"}
    [:table {:id (create-sub-e-group-id e-group-id :table)
             :class "table table-striped table-hover" :width "100%"}
@@ -204,6 +205,24 @@ $( \"#" (name div-id) "\" ).html(data);
 
 ;; END Common html table
 ;;..............................................................................
+
+;;**************************************************************************************************
+;;* BEGIN html table
+;;* tag: <html table>
+;;*
+;;* description: ПРостая таблица
+;;*
+;;**************************************************************************************************
+
+(defn table-list [e-group-id {items :items :as table-describe}]
+  (let [tag-id (create-sub-e-group-id e-group-id :table-list)]
+    (-> table-describe
+        (assoc :e-group-id tag-id)
+        (assoc :items (-> items cdbsql/common-exec))
+        html-table)))
+        
+;; END html table
+;;..................................................................................................
 
 
 ;;------------------------------------------------------------------------------
