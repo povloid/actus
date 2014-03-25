@@ -111,7 +111,7 @@ $( \"#" (name div-id) "\" ).html(data);
 (defn ajax-fn-udate-div-au [f-name url div-id after-update-js-script]
   (js-text-compressor
    "function " f-name "(){ " (ajax-udate-div-ua url div-id after-update-js-script)  " };"
-))
+   ))
 
 (defn ajax-fn-udate-div [f-name url div-id]
   (ajax-fn-udate-div-au f-name url div-id ""))
@@ -215,7 +215,7 @@ $( \"#" (name div-id) "\" ).html(data);
         (assoc :e-group-id tag-id)
         (assoc :items (-> items cdbsql/common-exec))
         html-table)))
-        
+
 ;; END html table
 ;;..................................................................................................
 
@@ -931,6 +931,19 @@ progressbar.css('width','0%');
                  ) suffix))
 
 
+(defn fn-file-upload-and-save [files-entity buffer-size base-dir prefix-dir suffix-dir max-file-size]
+  (let [t-buffer-size (or buffer-size 1024)
+        t-base-dir (or base-dir "/tmp")
+        t-prefix-dir (or prefix-dir "")
+        t-suffix-dir (or suffix-dir "")
+        t-max-file-size (or max-file-size (* 10 1024 1024))]
+
+    (fn [request]
+      (cdbsql/common-save-for-id files-entity
+                                 (upload-file request t-buffer-size t-base-dir
+                                              (make-date-dirs t-prefix-dir t-suffix-dir) ;; "/prefix" "/sufix"
+                                              t-max-file-size)))))
+
 
 
 
@@ -938,6 +951,39 @@ progressbar.css('width','0%');
 ;;..............................................................................
 ;; END File uploading
 ;;..............................................................................
+
+;;------------------------------------------------------------------------------
+;; BEGIN: Files table list
+;; tag: <files table list>
+;; description: Вывод списка фалов
+;;------------------------------------------------------------------------------
+
+(def table-files-list
+  {:name :files
+   :columns [
+             {:field :files_id
+              :text "№"
+              :getfn :files_id
+              :sorter true
+              }
+
+             {:field :filename
+              :text "Наименование"
+              :getfn :filename
+              }
+             ]
+   })
+
+;;(defn files-list [entity-key id group]
+;;  (html
+;;   (table-list :files (assoc table-files-list :items (s/files-for* entity-key id group)))))
+
+
+;; END Files table list
+;;..............................................................................
+
+
+
 
 
 ;; END INPUT ELEMENTS

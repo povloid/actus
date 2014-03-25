@@ -77,7 +77,24 @@
 ;; END Common predicates
 ;;..............................................................................
 
-
-
+;; ---------------------------------------------------------------------
 
 ;; ---------------------------------------------------------------------
+
+(defmacro def-files-entitys-map []
+  '(def files-entitys-map {})) ;; :entity [entity field]
+
+;;(declare-files-entitys-map)
+
+(defmacro def-files-entitys-map-add [entity-key entity field]
+  (concat '(def files-entitys-map) [(concat '(assoc files-entitys-map) [entity-key [entity field]])]))
+
+;; пример определения
+;; (files-entitys-map-add :e1 select*-entity :field1)
+
+(defn files-for* [files-entitys-map files entity-key entity-id filegroup]
+  (let [[entity field] (files-entitys-map entity-key)]
+    (-> (select* entity)
+        (with files)
+        (common-filter-by= :files.typegroup filegroup)
+        (common-filter-by= field entity-id))))
