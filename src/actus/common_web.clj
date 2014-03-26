@@ -162,6 +162,8 @@
 ;; description: ajax функционал
 ;;------------------------------------------------------------------------------
 
+;; cache: false  - Очень важен для коректной работы в IE
+
 (defn jquery-get-ua [url after-update-js-script]
   (js-text-compressor "$.get( '"url"',{}, function(){" after-update-js-script "});"))
 
@@ -170,6 +172,7 @@
   (js-text-compressor "
 $.ajax({
 url: \"" (str url) "\",
+cache: false,
 success: function() {
 " after-update-js-script "
 }});"
@@ -179,6 +182,7 @@ success: function() {
   (js-text-compressor "
 $.ajax({
 url: \"" (str url) "\",
+cache: false,
 success: function(data) {
 $( \"#" (name div-id) "\" ).html(data);
 " after-update-js-script "
@@ -206,6 +210,7 @@ $( \"#" (name div-id) "\" ).html(data);
    "function " f-name "(url){
 $.ajax({
 url: url,
+cache: false,
 success: function(data) {
 $( \"#" (name div-id) "\" ).html(data);
 " after-update-js-script "
