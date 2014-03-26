@@ -1,5 +1,7 @@
 (ns actus.common-web
 
+  (:use compojure.core)
+
   (:use hiccup.core)
   (:use hiccup.page)
   (:use hiccup.form)
@@ -1206,6 +1208,58 @@ progressbar.css('width','0%');
                                  (keyword entity-key)
                                  (Integer/parseInt e-id)
                                  (Integer/parseInt f-id)))
+
+
+;;------------------------------------------------------------------------------
+;; BEGIN: Fule uploading routes
+;; tag: <file upload routes>
+;; description: Маршруты для файлового аплоадера
+;;------------------------------------------------------------------------------
+
+
+(defn create-routes-for-file-upload* [files-entitys-map ;; Какта соответствия привязанных чущностей
+                                      files-entity buffer-size base-dir prefix-dir suffix-dir max-file-size]
+  (defroutes routes-for-file-upload*
+    ;; Выгрузка файлов
+    (POST "/files/upload" request
+          (cdbsql/save-entity-file-rel files-entitys-map
+                                       (-> request :headers (get "entity-key") keyword)
+                                       (-> request :headers (get "id") (Long/parseLong))
+                                       (:id ((fn-file-upload-and-save files-entity buffer-size base-dir prefix-dir suffix-dir max-file-size)
+                                             request))))
+
+    ;; Получение списка файлов
+    (GET "/files/:entity/:id/list/:group" [entity id group dialog-tag-id upd-fn]
+         (files-list-as-html files-entitys-map files-entity entity id group dialog-tag-id upd-fn))  ; 0 is files
+
+    ;; Удаление привязки сущьности к файлу
+    (GET "/files/:entity/:e-id/delfile/:f-id" [entity e-id f-id]
+         (delete-entity-file files-entitys-map entity e-id f-id))
+
+    ;; Содержимое диалога на удаление
+    (GET "/files/:entity/:e-id/delfile/:f-id/question-dialog" [entity e-id f-id dialog-tag-id upd-fn]
+         (delete-entity-file?-question-dialog entity e-id f-id dialog-tag-id upd-fn))
+
+    ;; Кэшированный источник файлов для картинок
+    (GET "/image/*" {{path :*} :params :as request}
+         {:status 200
+          :headers {"Cache-Control" (str "max-age=" (* 60 60 24 7)) }
+          :body (clojure.java.io/file (str base-dir path))})
+
+    ;; Источник файлов
+    (GET "/file/*" {{path :*} :params :as request}
+         (clojure.java.io/file (str base-dir path)))
+    ))
+
+
+;; END Fule uploading routes
+;;..............................................................................
+
+
+
+
+
+
 
 
 ;; END Files table list

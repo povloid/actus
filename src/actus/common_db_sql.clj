@@ -99,6 +99,9 @@
         (common-filter-by= :files.typegroup filegroup)
         (common-filter-by= field entity-id))))
 
+(defn save-entity-file-rel [files-entitys-map entity-key e-id f-id]
+  (let [[entity field] (files-entitys-map entity-key)]
+     (insert entity (values {:files_id f-id field e-id}))))
 
 (defn delete-entity-file-rel [files-entitys-map entity-key e-id f-id]
   (let [[entity field] (files-entitys-map entity-key)]
