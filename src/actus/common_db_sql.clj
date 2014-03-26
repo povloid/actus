@@ -98,3 +98,8 @@
         (with files)
         (common-filter-by= :files.typegroup filegroup)
         (common-filter-by= field entity-id))))
+
+
+(defn delete-entity-file-rel [files-entitys-map entity-key e-id f-id]
+  (let [[entity field] (files-entitys-map entity-key)]
+    (delete entity (where (and (= :files_id f-id) (= field e-id))))))

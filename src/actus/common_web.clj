@@ -54,7 +54,9 @@
 ;;**************************************************************************************************
 
 (defn create-sub-e-group-id [e-group-id id]
-  (keyword (str (name e-group-id) "_" (name id))))
+  (-> (str (name e-group-id) "_" (name id))
+      (clojure.string/replace #"-" "_")
+      keyword))
 
 (defn get-param [{params :params} k default]
   (let [{n k :or {n default}} params] n))
@@ -89,11 +91,87 @@
   (str " v = this.form.elements['" (name id) "'].value; if(v > 1) this.form.elements['" (name id) "'].value = parseInt(v) - 1;"))
 
 
+;;**************************************************************************************************
+;;* BEGIN Button
+;;* tag: <button>
+;;*
+;;* description: Кнопки
+;;*
+;;**************************************************************************************************
+
+(defn a-button [value attrs]
+  [:button (merge {:type "button" :class "btn btn-default"} attrs) value ])
+
+(defn a-button-default [value attrs]
+  (a-button value (merge attrs {:class "btn btn-default"})))
+
+(defn a-button-primary [value attrs]
+  (a-button value (merge attrs {:class "btn btn-primary"})))
+
+(defn a-button-success [value attrs]
+  (a-button value (merge attrs {:class "btn btn-success"})))
+
+(defn a-button-info [value attrs]
+  (a-button value (merge attrs {:class "btn btn-info"})))
+
+(defn a-button-warning [value attrs]
+  (a-button value (merge attrs {:class "btn btn-warning"})))
+
+(defn a-button-danger [value attrs]
+  (a-button value (merge attrs {:class "btn btn-danger"})))
+
+(defn a-button-link [value attrs]
+  (a-button value (merge attrs {:class "btn btn-link"})))
+
+
+(defn a-button-onclick [value attrs onclick]
+  (a-button value (assoc attrs :onclick onclick)))
+
+(defn a-button-onclick-default [value attrs onclick]
+  (a-button-default value (assoc attrs :onclick onclick)))
+
+(defn a-button-onclick-primary [value attrs onclick]
+  (a-button-primary value (assoc attrs :onclick onclick)))
+
+(defn a-button-onclick-success [value attrs onclick]
+  (a-button-success value (assoc attrs :onclick onclick)))
+
+(defn a-button-onclick-info [value attrs onclick]
+  (a-button-info value (assoc attrs :onclick onclick)))
+
+(defn a-button-onclick-warning [value attrs onclick]
+  (a-button-warning value (assoc attrs :onclick onclick)))
+
+(defn a-button-onclick-danger [value attrs onclick]
+  (a-button-danger value (assoc attrs :onclick onclick)))
+
+(defn a-button-onclick-link [value attrs onclick]
+  (a-button-link value (assoc attrs :onclick onclick)))
+
+
+
+;; END Button
+;;..................................................................................................
+
+
 ;;------------------------------------------------------------------------------
 ;; BEGIN: AJAX
 ;; tag: <ajax>
 ;; description: ajax функционал
 ;;------------------------------------------------------------------------------
+
+(defn jquery-get-ua [url after-update-js-script]
+  (js-text-compressor "$.get( '"url"',{}, function(){" after-update-js-script "});"))
+
+
+(defn ajax-ua [url after-update-js-script]
+  (js-text-compressor "
+$.ajax({
+url: \"" (str url) "\",
+success: function() {
+" after-update-js-script "
+}});"
+))
 
 (defn ajax-udate-div-ua [url div-id after-update-js-script]
   (js-text-compressor "
@@ -148,6 +226,104 @@ $( \"#" (name div-id) "\" ).html(data);
 
 ;; END Javascript tools
 ;;..................................................................................................
+
+
+;;**************************************************************************************************
+;;* BEGIN Dialogs
+;;* tag: <dialogs>
+;;*
+;;* description: Функции для работы с диалогами
+;;*
+;;**************************************************************************************************
+
+
+(defn dialog-test []
+  [:div
+   [:div {:id :source-modal :class "modal fade"}
+    [:div {:class "modal-dialog modal-lg"}
+     [:div {:class "modal-content"}
+      [:div {:class "modal-header"}
+       [:button {:type "button" :class "close" :data-dismiss "modal" :aria-hidden "true"} "&times;"]
+       [:h4 {:class "modal-title"} "Title" ]
+       ]
+      [:div {:class "modal-body"}
+       "Dialog text"
+       ]]]]
+
+   [:button {:type "button" :onclick "$(\"#source-modal\").modal();"} "Dialog"]
+   ])
+
+;;------------------------------------------------------------------------------
+;; BEGIN: Ajax dialog
+;; tag: <ajax dialog>
+;; description: Диалог с AJAX подгрузкой
+;;------------------------------------------------------------------------------
+
+(defn button-show-dialog [caption dialog-id url]
+  (a-button-onclick caption {} (str "update_" (name dialog-id) "('" url "')")))
+
+(defn dialog-ajax [e-tag-id title dialog-footer]
+  (let [e-tag-id-s (name e-tag-id)
+        body-id-s  (str e-tag-id-s "_dialog_body" )]
+    [:div
+     [:div {:id e-tag-id :class "modal fade"}
+      [:div {:class "modal-dialog modal-lg"}
+       [:div {:class "modal-content"}
+        [:div {:class "modal-header"}
+         [:button {:type "button" :class "close" :data-dismiss "modal" :aria-hidden "true"} "&times;"]
+         [:h4 {:class "modal-title"} title ] ]
+        [:div {:class "modal-body"}
+         [:div {:id body-id-s}] [:hr] dialog-footer]
+        ]]]
+
+     (javascript-tag
+      (ajax-fn-udate-div-au-p-url (str "update_" e-tag-id-s)
+                                  body-id-s
+                                  (str "$(\"#" e-tag-id-s "\").modal();")))
+
+
+     ]))
+
+(defn button-close-modal [caption]
+  (a-button caption {:data-dismiss "modal" :aria-hidden "true"}))
+
+;; ---
+
+(defn a-button-dialog-ajax-cl [value attrs onclick]
+  (a-button-onclick value (merge attrs {:data-dismiss "modal" }) onclick))
+
+(defn a-button-dialog-ajax-cl-default [value attrs onclick]
+  (a-button-onclick-default value (merge attrs {:data-dismiss "modal" }) onclick))
+
+(defn a-button-dialog-ajax-cl-primary [value attrs onclick]
+  (a-button-onclick-primary value (merge attrs {:data-dismiss "modal" }) onclick))
+
+(defn a-button-dialog-ajax-cl-success [value attrs onclick]
+  (a-button-onclick-success value (merge attrs {:data-dismiss "modal" }) onclick))
+
+(defn a-button-dialog-ajax-cl-info [value attrs onclick]
+  (a-button-onclick-info value (merge attrs {:data-dismiss "modal" }) onclick))
+
+(defn a-button-dialog-ajax-cl-warning [value attrs onclick]
+  (a-button-onclick-warning value (merge attrs {:data-dismiss "modal" }) onclick))
+
+(defn a-button-dialog-ajax-cl-danger [value attrs onclick]
+  (a-button-onclick-danger value (merge attrs {:data-dismiss "modal" }) onclick))
+
+(defn a-button-dialog-ajax-cl-link [value attrs onclick]
+  (a-button-onclick-link value (merge attrs {:data-dismiss "modal" }) onclick))
+
+
+
+;; END Ajax dialog
+;;..............................................................................
+
+
+;; END Dialogs
+;;..................................................................................................
+
+
+
 
 
 ;;**************************************************************************************************
@@ -664,6 +840,7 @@ $(window).load(function () {
 
 ;; BUTTONS ------------------------------------------------------------------------------------------
 
+
 ;;------------------------------------------------------------------------------
 ;; BEGIN: Actus button functional
 ;; tag: <actus-button>
@@ -944,9 +1121,6 @@ progressbar.css('width','0%');
                                               (make-date-dirs t-prefix-dir t-suffix-dir) ;; "/prefix" "/sufix"
                                               t-max-file-size)))))
 
-
-
-
 ;; END File uploading tools
 ;;..............................................................................
 ;; END File uploading
@@ -974,9 +1148,64 @@ progressbar.css('width','0%');
              ]
    })
 
-;;(defn files-list [entity-key id group]
-;;  (html
-;;   (table-list :files (assoc table-files-list :items (s/files-for* entity-key id group)))))
+(def table-images-list
+  {:name :images
+   :columns [
+             {:field :files_id
+              :text "№"
+              :getfn :files_id
+              :sorter true
+              }
+
+             {:field :filename
+              :text "Наименование"
+              :getfn :filename
+              }
+             ]
+   })
+
+(defn files-list [files-entitys-map files-entity entity-key-s e-id-s group-s dialog-tag-id upd-fn]
+  (let [entity-key (keyword entity-key-s)
+        e-id (Integer/parseInt e-id-s)
+        group (Integer/parseInt group-s)
+        tag-id (create-sub-e-group-id entity-key (str e-id))]
+
+    [:div
+     (table-list :files (assoc (-> (cond (= group 0) table-files-list
+                                         (= group 1) table-images-list
+                                         :else table-files-list)
+
+                                   (add-column
+                                    {:text "Действие"
+                                     :getfn #(let [{id :id} %]
+                                               (button-show-dialog "Уд!" dialog-tag-id
+                                                                   (url "/files/" (name entity-key) "/" e-id "/delfile/" id "/question-dialog"
+                                                                        {:upd-fn (or upd-fn "update") :dialog-tag-id (or dialog-tag-id "del-dialog-1") })))
+                                     }))
+
+                          :items (cdbsql/files-for* files-entitys-map files-entity entity-key e-id group)))
+     ]))
+
+(defn files-list-as-html [files-entitys-map files-entity entity-key id group dialog-tag-id upd-fn]
+  (html (files-list files-entitys-map files-entity entity-key id group dialog-tag-id upd-fn)))
+
+
+(defn delete-entity-file?-question-dialog [entity-key e-id f-id dialog-tag-id upd-fn]
+  (html (str "Удалить фаил  " f-id " ?")
+        [:div
+         (a-button-dialog-ajax-cl-warning
+          "Удалить" {}
+          (ajax-ua (url "/files/" entity-key "/" e-id "/delfile/" f-id ) (or upd-fn ""))) " "
+
+         (button-close-modal "Отмена")
+         ]))
+
+(defn delete-entity-file [files-entitys-map entity-key e-id f-id]
+  (println entity-key " " e-id " " f-id )
+  (cdbsql/delete-entity-file-rel files-entitys-map
+                                 (keyword entity-key)
+                                 (Integer/parseInt e-id)
+                                 (Integer/parseInt f-id)))
 
 
 ;; END Files table list
@@ -1242,77 +1471,6 @@ progressbar.css('width','0%');
 ;; END Entity mapping and convertation
 ;;..................................................................................................
 
-
-
-;;**************************************************************************************************
-;;* BEGIN Dialogs
-;;* tag: <dialogs>
-;;*
-;;* description: Функции для работы с диалогами
-;;*
-;;**************************************************************************************************
-
-
-(defn dialog-test []
-  [:div
-   [:div {:id :source-modal :class "modal fade"}
-    [:div {:class "modal-dialog modal-lg"}
-     [:div {:class "modal-content"}
-      [:div {:class "modal-header"}
-       [:button {:type "button" :class "close" :data-dismiss "modal" :aria-hidden "true"} "&times;"]
-       [:h4 {:class "modal-title"} "Title" ]
-       ]
-      [:div {:class "modal-body"}
-       "Dialog text"
-       ]]]]
-
-   [:button {:type "button" :onclick "$(\"#source-modal\").modal();"} "Dialog"]
-   ])
-
-
-;;------------------------------------------------------------------------------
-;; BEGIN: Ajax dialog
-;; tag: <ajax dialog>
-;; description: Диалог с AJAX подгрузкой
-;;------------------------------------------------------------------------------
-
-(defn button-show-dialog [caption dialog-id url]
-  [:button {:type "button" :class "btn btn-default"
-            :onclick (str "update_" (name dialog-id) "('" url "')") } caption])
-
-(defn dialog-ajax [e-tag-id title dialog-footer]
-  (let [e-tag-id-s (name e-tag-id)
-        body-id-s  (str e-tag-id-s "_dialog_body" )]
-    [:div
-     [:div {:id e-tag-id :class "modal fade"}
-      [:div {:class "modal-dialog modal-lg"}
-       [:div {:class "modal-content"}
-        [:div {:class "modal-header"}
-         [:button {:type "button" :class "close" :data-dismiss "modal" :aria-hidden "true"} "&times;"]
-         [:h4 {:class "modal-title"} title ] ]
-        [:div {:class "modal-body"}
-         [:div {:id body-id-s}] [:hr] dialog-footer]
-        ]]]
-
-     (javascript-tag
-      (ajax-fn-udate-div-au-p-url (str "update_" e-tag-id-s)
-                                  body-id-s
-                                  (str "$(\"#" e-tag-id-s "\").modal();")))
-
-
-     ]))
-
-(defn button-close-modal [caption]
-  [:Button {:type "button" :class "btn btn-default" :data-dismiss "modal" :aria-hidden "true"} caption])
-
-;; END Ajax dialog
-;;..............................................................................
-
-
-
-
-;; END Dialogs
-;;..................................................................................................
 
 
 
