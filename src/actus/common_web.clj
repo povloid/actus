@@ -1150,7 +1150,9 @@ progressbar.css('width','0%');
 
              {:field :filename
               :text "Наименование"
-              :getfn :filename
+              :getfn (fn [row]
+                       (let [url-path (str "/file" (:path row))]
+                         [:a {:href url-path :target "_blank"} (:filename row)]))
               }
              ]
    })
@@ -1166,8 +1168,14 @@ progressbar.css('width','0%');
 
              {:field :filename
               :text "Наименование"
-              :getfn :filename
+              :getfn (fn [row]
+                       (let [url-path (str "/image" (:path row))]
+                         [:div
+                          [:img {:src url-path :alt "нет изобр." :height "42" :width "42"}]
+                          [:a {:href url-path :target "_blank"} (:filename row)]
+                          ]))
               }
+
              ]
    })
 
@@ -1249,23 +1257,38 @@ progressbar.css('width','0%');
     (GET "/image/*" {{path :*} :params :as request}
          {:status 200
           :headers {"Cache-Control" (str "max-age=" (* 60 60 24 7)) }
-          :body (clojure.java.io/file (str base-dir path))})
+          :body (clojure.java.io/file (str base-dir "/" path))})
 
     ;; Источник файлов
     (GET "/file/*" {{path :*} :params :as request}
-         (clojure.java.io/file (str base-dir path)))
+         (clojure.java.io/file (str base-dir "/" path)))
     ))
 
 
 ;; END Fule uploading routes
 ;;..............................................................................
 
+(defn actus-file-upload-list [e-id entity-key id group]
+  (let [update-files-fn-s (name (create-sub-e-group-id e-id :update))
+        update-files-fn-call-s (str update-files-fn-s "();")
+        del-dialog-id (create-sub-e-group-id e-id :del-dialog)
+        entity-key-s (name entity-key)
+        files-list-div-id (create-sub-e-group-id e-id :files-list-div-id)
+        file-upload-id (create-sub-e-group-id e-id :up-files)]
+    [:div
+     (actus-file-upload file-upload-id (url "/files/upload" )
+                        {:id id :type-group group :entity-key entity-key-s}
+                        update-files-fn-call-s)
+     [:div {:id files-list-div-id}]
+     (javascript-tag
+      (defn-js-fn-and-call
+        ajax-fn-udate-div update-files-fn-s
+        (url "/files/" entity-key-s "/" id "/list/" group {:upd-fn update-files-fn-call-s
+                                                           :dialog-tag-id del-dialog-id})
+        files-list-div-id))
 
-
-
-
-
-
+     (dialog-ajax del-dialog-id "Удаление записи..." "Подвал")
+     ]))
 
 ;; END Files table list
 ;;..............................................................................
