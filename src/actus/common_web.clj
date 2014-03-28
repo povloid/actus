@@ -19,8 +19,81 @@
             ))
 
 
-
 (declare alert- alert-page)
+
+
+;;**************************************************************************************************
+;;* BEGIN PATH
+;;* tag: <path>
+;;*
+;;* description: Пути
+;;*
+;;**************************************************************************************************
+
+(def path-actus-root "/actus")
+
+(defmacro path-actus [path]
+  (let [p (str path-actus-root path)]
+    p))
+
+;; END PATH
+;;..................................................................................................
+
+
+;;------------------------------------------------------------------------------
+;; BEGIN: TEMPLATE
+;; tag: <template>
+;; description: Основной шаблон
+;;------------------------------------------------------------------------------
+
+(def head
+  [:head
+   [:title "Politrend"]
+   [:meta {:charset "utf-8" :name "viewport" :content "width=device-width, initial-scale=1"}]
+
+   (include-css (path-actus "/css/bootstrap.css"))
+   (include-css (path-actus "/css/actus.css"))
+   ;;(include-css "/css/bootswatch.min.css")
+
+   (include-js  (path-actus "/js/jquery-2.1.0.min.js"))
+   (include-js  (path-actus "/js/ckeditor/ckeditor.js"))
+   ])
+
+(def page-footer
+  [:footer "Подвал"])
+
+(defmacro actus-content-template [navbar-panel]
+  (let [n 'actus-content-template]
+    `(def ~n (fn n [content#]
+               (html5 {:lang "ru"}
+                      head
+                      [:body
+                       [:nav ~navbar-panel]
+                       [:br]
+                       [:br]
+                       [:br]
+
+                       [:div {:class "container"}
+
+                        content#
+                        ;;(repeat 20 content)
+
+                        [:br]
+                        ]
+                       page-footer
+
+                       (include-js (path-actus "/js/bootstrap.min.js"))
+                       ]
+                      )))))
+
+
+;; END TEMPLATE
+;;..............................................................................
+
+;; END TEMPLATES
+;;..................................................................................................
+
+
 
 
 ;;**************************************************************************************************
