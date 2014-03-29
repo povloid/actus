@@ -1440,6 +1440,10 @@ progressbar.css('width','0%');
   (page-row- col-lg
              (apply div-form- (into [legend] body))))
 
+(defn page-form-1-fn [legend col-lg body]
+  (page-row- col-lg (apply div-form- (into [legend] body))))
+
+
 ;; FORM GROUP ------------------------------------------
 
 (defn e-has-? [{actus-has-es actus-has-es-keyword} s id]
@@ -1648,3 +1652,211 @@ progressbar.css('width','0%');
 
 
 ;; end
+
+
+;;**************************************************************************************************
+;;* BEGIN standart-pages
+;;* tag: <starndart pages>
+;;*
+;;* description: Стандартные страници
+;;*
+;;**************************************************************************************************
+
+
+;;------------------------------------------------------------------------------
+;; BEGIN: Standart page for table and entity with id
+;; tag: <standart page table edit entity id>
+;; description: Стандартная форма с таблицей для сущности имеющей поле id
+;;------------------------------------------------------------------------------
+
+(defn std-page-table-edit-entity-id [path-table
+                                     path-edit-dialog
+                                     content-template
+
+                                     request
+
+                                     table-describe
+                                     & [add-actus-map some-content]]
+
+  (let [t-table-describe (merge {} table-describe)
+        t-actus-map (merge {
+                            :add #(vector :redirect (go-to-url % path-edit-dialog
+                                                               {actus-keyword :add} {}))
+
+                            :edit #(vector :redirect (go-to-url % path-edit-dialog
+                                                                {actus-keyword :edit :id (-> % :params :id)}
+                                                                {:id (-> % :params :id)}))
+
+                            :del #(vector :redirect (go-to-url % path-edit-dialog
+                                                               {actus-keyword :del :id (-> % :params :id)}
+                                                               {:id (-> % :params :id)}))
+
+                            :del-dialog #(vector :response (let [{{id :id} :params} %]
+                                                             (html
+                                                              (str "Запись id: " id)
+                                                              [:div
+                                                               (actus-button-wapl-warning :del "Удалить!" {:id id}) " "
+                                                               (button-close-modal "Отмена")
+                                                               ])))
+
+                            :info-dialog #(vector :response (let [{{id :id} :params} %]
+                                                              (html (str "Запись id: " id))))
+                            } (or add-actus-map {}))]
+
+    (actus-in-form
+
+     request
+
+     t-actus-map
+
+     (fn [request]
+       (content-template
+        (actus-form-to request
+                       :form-1 [:get path-table]
+                       [
+
+                        (:before-table some-content)
+
+                        (hidden-field {} :id nil)
+
+                        (when-not (nil? (:add  t-actus-map))
+                          (actus-button :add "Добавить" nil))
+
+                        (html-table-with-page-sort
+                         request
+                         (-> t-table-describe
+                             (add-column
+                              {:text "Действие"
+                               :getfn #(let [{id :id} %]
+                                         [:div
+
+                                          (when-not (nil? (:edit  t-actus-map))
+                                            (actus-button-wapl :edit "Ред." {:id id} nil)) " "
+
+                                          (when-not (nil? (:del  t-actus-map))
+                                            (button-show-dialog "Уд!" :dialog_delete (url path-table {actus-keyword :del-dialog :id id}))) " "
+
+                                          (when-not (nil? (:info-dialog  t-actus-map))
+                                            (button-show-dialog "Инф." :dialog_info (url path-table {actus-keyword :info-dialog :id id})))
+
+                                          ])
+                               })
+                             )
+                         :0)
+
+                        (when-not (nil? (:del  t-actus-map))
+                          (dialog-ajax :dialog_delete "Удаление записи..." "Подвал"))
+
+                        (when-not (nil? (:info-dialog  t-actus-map))
+                          (dialog-ajax :dialog_info "Информация по записи" "Подвал"))
+
+                        (:after-table some-content)
+
+                        ;; (html-table-with-page-sort request table-news-1 :9)
+                        ]))))))
+
+
+;; END Standart page for table and entity with id
+;;..............................................................................
+
+
+;;------------------------------------------------------------------------------
+;; BEGIN: Standart page for edit entity with id dialog
+;; tag: <standart page table edit entity id dialog>
+;; description: Стандартная форма редактирования
+;;------------------------------------------------------------------------------
+
+
+(defn std-page-dialog-edit-entity-id [path-edit-dialog
+                                      content-template
+                                      request
+                                      entity
+                                      default-entity
+                                      save-entity-request-fn
+                                      convertors-and-validators
+                                      add-actus-map
+                                      form-fields]
+
+  (let [form-<map>-entity (into [;; Связывание полей
+                                 {:e :id :f :id
+                                  :f-<-e str
+                                  :f->-e #(Long/parseLong %) :e-fn-rm? empty? }
+                                 ] (or convertors-and-validators [])  )
+
+        actus-map (merge {:close #(vector :redirect (-> % :params :ret-url))
+
+                          :add (do-form-from-request->
+                                #(try-fill-form % form-<map>-entity
+                                                default-entity)) ;; Значения по умолчанию
+
+                          :edit  (do-form-from-request->
+                                  #(let [{{id :id} :params} %]
+                                     (try-fill-form % form-<map>-entity
+                                                    (cdbsql/common-find entity (Long/parseLong id)) )))
+
+                          :update  (do-form-from-request->
+                                    #(try-fill-entity % form-<map>-entity {} :entity)
+
+                                    ;;;#(do (println ">>>>>>>" %) %)
+
+                                    #(let [{e :entity :as request} %]
+                                       (try-fill-form request form-<map>-entity (save-entity-request-fn e) ))
+
+                                    ;;#(/ 1 0 %)
+
+                                    #(actus-add-alert % :success "Операция проведена успешно!"))
+
+                          ;;:update-and-close #(vector :redirect (-> % :params :ret-url))
+
+                          :del #(vector :redirect (let [{{id :id ret-url :ret-url} :params} %]
+                                                    (cdbsql/common-delete-for-id entity (Long/parseLong id))
+                                                    ret-url))
+
+                          ;;:upload #(s/news-upload-and-save (-> % :headers (get "id") (Long/parseLong)) %)
+
+                          } (or add-actus-map {}))
+        ]
+
+    (actus-in-form
+     request
+     actus-map
+
+     (fn [{{id :id :as params} :params :as request}]
+       (content-template
+        (actus-form-to
+         request :form-1 [:post path-edit-dialog]
+         [
+          (actus-hidden-field params {} :id nil)
+
+          ;;(alert-page :info (str params))
+          ;;(println ">>>>>>>>>" request)
+
+          (page-form-1-fn "LEGEND" 12
+                          (conj
+
+                           (form-fields request params id)
+
+                           [:p {:class "bs-component"}
+                             (actus-button :close "Назад" nil) " "
+                             ;;(actus-button :update-and-close "Принять и закрыть") " "
+                             (actus-button :update "Сохранить" nil) " " ;; Надо ставить пробелл так как нет переноса
+                             ])
+                          )
+          ]))))))
+
+
+
+
+
+
+
+
+;; END Standart page for edit entity with id dialog
+;;..............................................................................
+
+
+
+
+
+;; END standart-tables
+;;..................................................................................................
