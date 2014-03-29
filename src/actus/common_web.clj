@@ -1052,13 +1052,13 @@ $(window).load(function () {
 ;; description: Элемент выгрузки фалов
 ;;------------------------------------------------------------------------------
 
-(defn actus-file-upload [id url-str header-params update-javascript]
+(defn actus-file-upload [id url-str header-params update-javascript attrs]
   (let [ids (name id)]
     [:div {:class "input-group"}
      [:span {:class "input-group-btn"}
       [:span {:class "btn btn-default btn-file"}
        "Открыть..."
-       (file-upload {:multiple true } id)]]
+       (file-upload (merge {:multiple true } attrs) id)]]
      [:div {:class "progress progress-striped" :style "margin: 10px"}
       [:div {:id (str ids "-progress") :class "progress-bar" :style "width: 0%"}
        ]]
@@ -1091,6 +1091,10 @@ progressbar.css('width','' + percentComplete + '%');
 x.onreadystatechange = function() {
 if (x.readyState != 4) return;
 if (x.status == 200) {
+
+/* var url=this.getResponseHeader('path'); */
+/* alert(this.getAllResponseHeaders()); */
+" update-javascript "
 } else {
 progressbar.css('width','0%');
 progressbar.html('0%');
@@ -1103,7 +1107,7 @@ progressbar.css('width','100%');
 progressbar.html('100%');
 };
 
-x.upload.onloadend=function(e){" update-javascript "};
+x.upload.onloadend=function(e){};
 
 x.open('POST', '" url-str "');
 x.setRequestHeader('filename', encodeURIComponent(file.name));"
@@ -1308,11 +1312,24 @@ progressbar.css('width','0%');
   (defroutes routes-for-file-upload*
     ;; Выгрузка файлов
     (POST "/files/upload" request
-          (cdbsql/save-entity-file-rel files-entitys-map
-                                       (-> request :headers (get "entity-key") keyword)
-                                       (-> request :headers (get "id") (Long/parseLong))
-                                       (:id ((fn-file-upload-and-save files-entity buffer-size base-dir prefix-dir suffix-dir max-file-size)
-                                             request))))
+          (let [new-file  ((fn-file-upload-and-save files-entity buffer-size base-dir prefix-dir suffix-dir max-file-size) request)
+                id (:id new-file)
+                path (:path new-file)
+                url-path (:urlpath new-file)
+                result (cdbsql/save-entity-file-rel files-entitys-map
+                                                    (-> request :headers (get "entity-key") keyword)
+                                                    (-> request :headers (get "id") (Long/parseLong))
+                                                    id)]
+            {:status 200
+             :headers {"files_id" (str id)
+                       "urlpath" url-path "path" path}}
+            ))
+
+    (POST "/files/upload/onefile" request
+          (let [new-file  ((fn-file-upload-and-save files-entity buffer-size base-dir prefix-dir suffix-dir max-file-size) request)]
+            {:status 200
+             :headers {"files_id" (-> new-file :id str)
+                       "urlpath" (-> new-file :urlpath) "path" (-> new-file :path)}}))
 
     ;; Получение списка файлов
     (GET "/files/:entity/:id/list/:group" [entity id group dialog-tag-id upd-fn]
@@ -1341,6 +1358,43 @@ progressbar.css('width','0%');
 ;; END Fule uploading routes
 ;;..............................................................................
 
+(defn actus-file-upload-one-image [params e-id group & [height width text]]
+  (let [file-upload-id (create-sub-e-group-id e-id :up-one-image)
+        a-id (create-sub-e-group-id e-id :a)
+        img-id (create-sub-e-group-id e-id :img)
+        par-id (create-sub-e-group-id e-id :hidden)
+        link-id (create-sub-e-group-id e-id :link-id)
+
+        par-url (str "/image" (params e-id))
+
+        height-s (str (or height 64))
+        width-s (str (or width 64))  ]
+    [:div
+
+     (actus-file-upload file-upload-id (url "/files/upload/onefile" )
+                        {:type-group group }
+                        (js-text-compressor "
+var url=this.getResponseHeader('path');
+$(\"#" (name img-id)  "\").attr(\"src\", \"/image\" + url);
+$(\"#" (name a-id)  "\").attr(\"href\", \"/image\" + url);
+$(\"#" (name e-id)  "\").val(url);
+$(\"#" (name link-id) "\").html(\"/image\" + url);
+")
+                        {:multiple false})
+
+     (hidden-field {} e-id (params e-id))
+
+     [:br]
+     [:div {:class "panel panel-default"}
+      [:div {:class "panel-heading"} (or text (str "желательный размер изображения " height-s "X" width-s) )]
+      [:div {:class "panel-body"}
+       [:a {:id a-id :href par-url :target "_blank"}
+        [:img {:id img-id  :src par-url :alt "нет изобр." :height height-s :width width-s}]
+        [:button {:id link-id :type "button" :class "btn btn-link"} par-url]
+       ]]]
+     ]))
+
+
 (defn actus-file-upload-list [e-id entity-key id group]
   (let [update-files-fn-s (name (create-sub-e-group-id e-id :update))
         update-files-fn-call-s (str update-files-fn-s "();")
@@ -1351,7 +1405,7 @@ progressbar.css('width','0%');
     [:div
      (actus-file-upload file-upload-id (url "/files/upload" )
                         {:id id :type-group group :entity-key entity-key-s}
-                        update-files-fn-call-s)
+                        update-files-fn-call-s {})
      [:div {:id files-list-div-id}]
      (javascript-tag
       (defn-js-fn-and-call
@@ -1837,10 +1891,10 @@ progressbar.css('width','0%');
                            (form-fields request params id)
 
                            [:p {:class "bs-component"}
-                             (actus-button :close "Назад" nil) " "
-                             ;;(actus-button :update-and-close "Принять и закрыть") " "
-                             (actus-button :update "Сохранить" nil) " " ;; Надо ставить пробелл так как нет переноса
-                             ])
+                            (actus-button :close "Назад" nil) " "
+                            ;;(actus-button :update-and-close "Принять и закрыть") " "
+                            (actus-button :update "Сохранить" nil) " " ;; Надо ставить пробелл так как нет переноса
+                            ])
                           )
           ]))))))
 
