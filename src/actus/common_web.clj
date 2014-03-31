@@ -445,7 +445,7 @@ $( \"#" (name div-id) "\" ).html(data);
     [:thead
      [:tr
       (for [column columns]
-        [:th (column :text)])]]
+        [:th (merge {} (column :th-attrs)) (column :text)])]]
 
     (for [item
           ;;(map #(assoc % :css-c-type %2) items (cycle ["0" "1"])) ;; Код чередования для старого CSS (чередование цвета)
@@ -693,11 +693,11 @@ $( \"#" (name div-id) "\" ).html(data);
 ;;*
 ;;**************************************************************************************************
 
-(defn html-navbar-link [text url]
-  [:li [:a {:href url} text ]])
+(defn html-navbar-link [text url & [attrs]]
+  [:li [:a (merge {:href url} attrs) text ]])
 
-(defn html-navbar-menu-item [text url]
-  [:li [:a {:href url} text ]])
+(defn html-navbar-menu-item [text url & [attrs]] 
+  [:li [:a (merge {:href url} attrs) text ]])
 
 (def html-navbar-menu-devider
   [:li {:class "divider"} ])
@@ -1372,7 +1372,7 @@ progressbar.css('width','0%');
 ;; END Fule uploading routes
 ;;..............................................................................
 
-(defn actus-file-upload-one-image [params e-id group & [height width text]]
+(defn actus-file-upload-one-image [params e-id group & [width height text]]
   (let [file-upload-id (create-sub-e-group-id e-id :up-one-image)
         a-id (create-sub-e-group-id e-id :a)
         img-id (create-sub-e-group-id e-id :img)
@@ -1762,7 +1762,7 @@ $(\"#" (name link-id) "\").html(\"/image\" + url);
                             :del-dialog #(vector :response (let [{{id :id} :params} %]
                                                              (html
                                                               (str "Запись id: " id)
-                                                              [:div
+                                                              [:div {:style "display:inline"}
                                                                (actus-button-wapl-warning :del "Удалить!" {:id id}) " "
                                                                (button-close-modal "Отмена")
                                                                ])))
@@ -1788,15 +1788,16 @@ $(\"#" (name link-id) "\").html(\"/image\" + url);
                         (hidden-field {} :id nil)
 
                         (when-not (nil? (:add  t-actus-map))
-                          (actus-button :add "Добавить" nil))
+                          [:p (actus-button :add "Добавить" nil)])
 
                         (html-table-with-page-sort
                          request
                          (-> t-table-describe
                              (add-column
                               {:text "Действие"
+                               :th-attrs {:style "width: 180px"}
                                :getfn #(let [{id :id} %]
-                                         [:div
+                                         [:div {:style "width: 180px"}
 
                                           (when-not (nil? (:edit  t-actus-map))
                                             (actus-button-wapl :edit "Ред." {:id id} nil)) " "

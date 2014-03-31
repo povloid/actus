@@ -11,6 +11,13 @@
 
 ;; COMMON FUNCTIONS ----------------------------------------------------
 
+(defn common-save-for-field
+  "Сохранить сущность"
+  [entity field vals]
+  (let [r (update entity (set-fields vals) (where (= field (vals field))))]
+    (if (nil? r)
+      (insert entity (values vals))
+      r)) )
 
 (defn common-save-for-id
   "Сохранить сущность"
