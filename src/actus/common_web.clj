@@ -126,6 +126,8 @@
 (defn make-translit [table s]
   (reduce #(str % (or (table %2) "")) ""  (clojure.string/lower-case s)))
 
+(defn make-translit-ru-en [s]
+  (make-translit translit-table-ru-en s))
 
 ;; END Translit
 ;;..................................................................................................
@@ -787,7 +789,7 @@ $( \"#" (name div-id) "\" ).html(data);
 (defn html-navbar-link [text url & [attrs]]
   [:li [:a (merge {:href url} attrs) text ]])
 
-(defn html-navbar-menu-item [text url & [attrs]] 
+(defn html-navbar-menu-item [text url & [attrs]]
   [:li [:a (merge {:href url} attrs) text ]])
 
 (def html-navbar-menu-devider
@@ -1627,6 +1629,46 @@ $(\"#" (name link-id) "\").html(\"/image\" + url);
 ;; END Form layouts
 ;;..............................................................................
 
+;;**************************************************************************************************
+;;* BEGIN panels
+;;* tag: <panels>
+;;*
+;;* description: Панели
+;;*
+;;**************************************************************************************************
+
+(defn a-panel-heading [content]
+  [:div {:class "panel-heading"} content])
+
+(defn a-panel-body [content]
+  [:div {:class "panel-body"} content])
+
+(defn a-panel-footer [content]
+  [:div {:class "panel-footer"} ])
+
+(defn a-panel [content & [attrs]]
+  [:div (merge {:class "panel panel-default"} attrs) content  ])
+
+(defn a-panel-primary [content & [attrs]]
+  (a-panel content (merge {:class "panel panel-primary"} attrs)))
+
+(defn a-panel-success [content & [attrs]]
+  (a-panel content (merge {:class "panel panel-success"} attrs)))
+
+(defn a-panel-warning [content & [attrs]]
+  (a-panel content (merge {:class "panel panel-warning"} attrs)))
+
+(defn a-panel-danger [content & [attrs]]
+  (a-panel content (merge {:class "panel panel-danger"} attrs)))
+
+(defn a-panel-info [content & [attrs]]
+  (a-panel content (merge {:class "panel panel-info"} attrs)))
+
+
+
+;; END panels
+;;..................................................................................................
+
 
 
 ;;------------------------------------------------------------------------------
@@ -1715,13 +1757,14 @@ $(\"#" (name link-id) "\").html(\"/image\" + url);
      ;; Проходимся и пробуем сконвертировать
      (reduce (fn [[a e] {to to-k from from-k f-conv f-conv-k
                          t-e-fn-rm? :e-fn-rm? }]
+               (println ">>>>> " to  " >>> " f-conv "")
                (let [value (from from-e)
                      e-fn-rm?  (if (and (= f-conv-k :f->-e)
                                         (not (nil? t-e-fn-rm?)))
                                  t-e-fn-rm?
                                  (fn [_] false))]
                  (try
-                   [(if (e-fn-rm? value)
+                   [(if (or (nil? f-conv) (e-fn-rm? value))
                       (dissoc a to)
                       (assoc a to (f-conv value)) ) e]
                    (catch Exception ex
@@ -2020,6 +2063,3 @@ $(\"#" (name link-id) "\").html(\"/image\" + url);
 
 ;; END standart-tables
 ;;..................................................................................................
-
-
-

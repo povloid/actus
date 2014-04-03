@@ -52,6 +52,40 @@
   [query]
   (exec query))
 
+
+;;**************************************************************************************************
+;;* BEGIN Entity fields transformation
+;;* tag: <entity field transfotmation>
+;;*
+;;* description: Функционал трансформации полей
+;;*
+;;**************************************************************************************************
+
+(defn common-fields-transformation
+  " (common-transformator-for-fields [:cdate :udate] (fn [value] ......))"
+  [field-keys fn-transformation vals]
+  (reduce
+   (fn [vals field-key]
+     (let [v (field-key vals)]
+       (if (nil? v) vals
+           (assoc vals field-key (fn-transformation v)))))
+   vals field-keys))
+
+(defn fields-transformation-clj-time->-sql-time [field-keys vals]
+  (common-fields-transformation field-keys
+                                #(tc/to-sql-time (tco/to-time-zone % (tco/default-time-zone)))
+                                vals))
+
+(defn fields-transformation-clj-time-<-sql-time [field-keys vals]
+  (common-fields-transformation field-keys
+                                #(tco/to-time-zone (tc/from-sql-time %) (tco/default-time-zone))
+                                vals))
+
+;; END Entity fields transformation
+;;..................................................................................................
+
+
+
 ;; PAGES AND SORTING --------------------------------------------------
 (defn common-page
   "Установть страницу и ее размер"
@@ -108,7 +142,7 @@
 
 (defn save-entity-file-rel [files-entitys-map entity-key e-id f-id]
   (let [[entity field] (files-entitys-map entity-key)]
-     (insert entity (values {:files_id f-id field e-id}))))
+    (insert entity (values {:files_id f-id field e-id}))))
 
 (defn delete-entity-file-rel [files-entitys-map entity-key e-id f-id]
   (let [[entity field] (files-entitys-map entity-key)]
