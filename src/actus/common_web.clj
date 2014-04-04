@@ -1175,7 +1175,7 @@ $(window).load(function () {
 
 $('#" ids "').change(function(){
 
-progressbar = $('#" ids "-progress');
+var progressbar = $('#" ids "-progress');
 progressbar.css('width','0%');
 progressbar.html('0%');
 
@@ -1336,7 +1336,10 @@ progressbar.css('width','0%');
               :text "Наименование"
               :getfn (fn [row]
                        (let [url-path (str "/file" (:path row))]
-                         [:a {:href url-path :target "_blank"} (:filename row)]))
+                         (list
+                          [:a {:href url-path :target "_blank"} (:filename row)]
+                          [:br]
+                          (:top_description row))))
               }
              ]
    })
@@ -1357,13 +1360,15 @@ progressbar.css('width','0%');
                          [:div
                           [:img {:src url-path :alt "нет изобр." :height "42" :width "42"}]
                           [:a {:href url-path :target "_blank"} (:filename row)]
+                          [:br]
+                          (:top_description row)
                           ]))
               }
 
              ]
    })
 
-(defn files-list [files-entitys-map files-entity entity-key-s e-id-s group-s dialog-tag-id upd-fn]
+(defn files-list [files-entitys-map files-entity entity-key-s e-id-s group-s del-dialog-tag-id edit-dialog-tag-id upd-fn]
   (let [entity-key (keyword entity-key-s)
         e-id (Integer/parseInt e-id-s)
         group (Integer/parseInt group-s)
@@ -1377,17 +1382,48 @@ progressbar.css('width','0%');
                                    (add-column
                                     {:text "Действие"
                                      :getfn #(let [{id :id} %]
-                                               (button-show-dialog "Уд!" dialog-tag-id
-                                                                   (url "/files/" (name entity-key) "/" e-id "/delfile/" id "/question-dialog"
-                                                                        {:upd-fn (or upd-fn "update") :dialog-tag-id (or dialog-tag-id "del-dialog-1") })))
+                                               (list
+                                                (button-show-dialog "Ред." edit-dialog-tag-id
+                                                                    (url "/files/editfile/" id "/edit-dialog"
+                                                                         {:upd-fn (or upd-fn "update") :dialog-tag-id (or edit-dialog-tag-id "edit-dialog-1") }))
+                                                " "
+                                                (button-show-dialog "Уд!" del-dialog-tag-id
+                                                                    (url "/files/" (name entity-key) "/" e-id "/delfile/" id "/question-dialog"
+                                                                         {:upd-fn (or upd-fn "update") :dialog-tag-id (or del-dialog-tag-id "del-dialog-1") }))
+
+                                                ))
                                      }))
 
                           :items (cdbsql/files-for* files-entitys-map files-entity entity-key e-id group)))
      ]))
 
-(defn files-list-as-html [files-entitys-map files-entity entity-key id group dialog-tag-id upd-fn]
-  (html (files-list files-entitys-map files-entity entity-key id group dialog-tag-id upd-fn)))
+(defn files-list-as-html [files-entitys-map files-entity entity-key id group del-dialog-tag-id edit-dialog-tag-id upd-fn]
+  (html (files-list files-entitys-map files-entity entity-key id group del-dialog-tag-id edit-dialog-tag-id upd-fn)))
 
+
+(defn edit-file-dialog [f-id dialog-tag-id upd-fn]
+  (let [top-description-id (create-sub-e-group-id dialog-tag-id :top_description)]
+    (html (str "Редактирование файла " f-id " ?")
+          [:div
+
+           (text-field {:class "form-control" :placeholder "Текстовая подпись..."}
+                       top-description-id)
+
+           (a-button-dialog-ajax-cl-warning "Принять" {}
+                                            (js-text-compressor "
+$.ajax({
+url: \"/files/file/update/" f-id "\",
+data: { top_description: $(\"#" (name top-description-id) "\").val() },
+cache: false,
+success: function() {
+" upd-fn "
+}});
+
+"))
+           " "
+           (button-close-modal "Отмена")
+
+           ])))
 
 (defn delete-entity-file?-question-dialog [entity-key e-id f-id dialog-tag-id upd-fn]
   (html (str "Удалить фаил  " f-id " ?")
@@ -1429,18 +1465,20 @@ progressbar.css('width','0%');
                                                     id)]
             {:status 200
              :headers {"files_id" (str id)
-                       "urlpath" url-path "path" path}}
+                       "urlpath" url-path
+                       "path" path}}
             ))
 
     (POST "/files/upload/onefile" request
           (let [new-file  ((fn-file-upload-and-save files-entity buffer-size base-dir prefix-dir suffix-dir max-file-size) request)]
             {:status 200
              :headers {"files_id" (-> new-file :id str)
-                       "urlpath" (-> new-file :urlpath) "path" (-> new-file :path)}}))
+                       "urlpath" (-> new-file :urlpath)
+                       "path" (-> new-file :path)}}))
 
     ;; Получение списка файлов
-    (GET "/files/:entity/:id/list/:group" [entity id group dialog-tag-id upd-fn]
-         (files-list-as-html files-entitys-map files-entity entity id group dialog-tag-id upd-fn))  ; 0 is files
+    (GET "/files/:entity/:id/list/:group" [entity id group del-dialog-tag-id edit-dialog-tag-id  upd-fn]
+         (files-list-as-html files-entitys-map files-entity entity id group del-dialog-tag-id edit-dialog-tag-id upd-fn))  ; 0 is files
 
     ;; Удаление привязки сущьности к файлу
     (GET "/files/:entity/:e-id/delfile/:f-id" [entity e-id f-id]
@@ -1449,6 +1487,15 @@ progressbar.css('width','0%');
     ;; Содержимое диалога на удаление
     (GET "/files/:entity/:e-id/delfile/:f-id/question-dialog" [entity e-id f-id dialog-tag-id upd-fn]
          (delete-entity-file?-question-dialog entity e-id f-id dialog-tag-id upd-fn))
+
+    ;; Содержимое диалога на редактирование
+    (GET "/files/editfile/:f-id/edit-dialog" [f-id dialog-tag-id upd-fn]
+         (edit-file-dialog f-id dialog-tag-id upd-fn))
+
+    ;; Удаление привязки сущьности к файлу
+    (GET "/files/file/update/:id" [id top_description]
+         (cdbsql/save-file files-entity  {:id (Long/parseLong id)
+                                          :top_description top_description}))
 
     ;; Кэшированный источник файлов для картинок
     (GET "/image/*" {{path :*} :params :as request}
@@ -1506,6 +1553,7 @@ $(\"#" (name link-id) "\").html(\"/image\" + url);
   (let [update-files-fn-s (name (create-sub-e-group-id e-id :update))
         update-files-fn-call-s (str update-files-fn-s "();")
         del-dialog-id (create-sub-e-group-id e-id :del-dialog)
+        edit-dialog-id (create-sub-e-group-id e-id :edit-dialog)
         entity-key-s (name entity-key)
         files-list-div-id (create-sub-e-group-id e-id :files-list-div-id)
         file-upload-id (create-sub-e-group-id e-id :up-files)]
@@ -1518,9 +1566,11 @@ $(\"#" (name link-id) "\").html(\"/image\" + url);
       (defn-js-fn-and-call
         ajax-fn-udate-div update-files-fn-s
         (url "/files/" entity-key-s "/" id "/list/" group {:upd-fn update-files-fn-call-s
-                                                           :dialog-tag-id del-dialog-id})
+                                                           :edit-dialog-tag-id edit-dialog-id
+                                                           :del-dialog-tag-id del-dialog-id })
         files-list-div-id))
 
+     (dialog-ajax edit-dialog-id "Редактирование записи..." "Подвал")
      (dialog-ajax del-dialog-id "Удаление записи..." "Подвал")
      ]))
 
