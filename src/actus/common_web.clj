@@ -500,30 +500,45 @@ $( \"#" (name div-id) "\" ).html(data);
 ;; description: Диалог с AJAX подгрузкой
 ;;------------------------------------------------------------------------------
 
-(defn button-show-dialog [caption dialog-id url]
-  (a-button-onclick caption {} (str "update_" (name dialog-id) "('" url "')")))
 
-(defn dialog-ajax [e-tag-id title dialog-footer]
+(defn modal-header [title]
+  [:div {:class "modal-header"}
+   [:button {:type "button" :class "close" :data-dismiss "modal" :aria-hidden "true"} "&times;"]
+   [:h4 {:class "modal-title"} title ]])
+
+(defn modal-body [body]
+  [:div {:class "modal-body"} body])
+
+(defn modal-footer [footer]
+  [:div {:class "modal-footer"} footer])
+
+(defn modal-content [content]
+  [:div {:class "modal-content"} content])
+
+(defn dialog-ajax [e-tag-id & [title footer]]
   (let [e-tag-id-s (name e-tag-id)
         body-id-s  (str e-tag-id-s "_dialog_body" )]
     [:div
      [:div {:id e-tag-id :class "modal fade"}
       [:div {:class "modal-dialog modal-lg"}
-       [:div {:class "modal-content"}
-        [:div {:class "modal-header"}
-         [:button {:type "button" :class "close" :data-dismiss "modal" :aria-hidden "true"} "&times;"]
-         [:h4 {:class "modal-title"} title ] ]
-        [:div {:class "modal-body"}
-         [:div {:id body-id-s}] [:hr] dialog-footer]
-        ]]]
+
+       (modal-content (list (when-not (empty? title)
+                              (modal-header title))
+
+                            [:div {:id body-id-s}] ;; БЛОК ОБНОВЛЕНИЯ
+
+                            (when-not (empty? footer)
+                              (modal-footer footer))))
+       ]]
 
      (javascript-tag
       (ajax-fn-udate-div-au-p-url (str "update_" e-tag-id-s)
                                   body-id-s
                                   (str "$(\"#" e-tag-id-s "\").modal();")))
-
-
      ]))
+
+(defn button-show-dialog [caption dialog-id url]
+  (a-button-onclick caption {} (str "update_" (name dialog-id) "('" url "')")))
 
 (defn button-close-modal [caption]
   (a-button caption {:data-dismiss "modal" :aria-hidden "true"}))
@@ -1651,16 +1666,22 @@ progressbar.css('width','0%');
   (html (files-list files-entitys-map files-entity entity-key id group del-dialog-tag-id edit-dialog-tag-id upd-fn)))
 
 
-(defn edit-file-dialog [f-id dialog-tag-id upd-fn]
-  (let [top-description-id (create-sub-e-group-id dialog-tag-id :top_description)]
-    (html (str "Редактирование файла " f-id " ?")
-          [:div
+;; files ajax dilaogs
 
-           (text-field {:class "form-control" :placeholder "Текстовая подпись..."}
-                       top-description-id)
-
-           (a-button-dialog-ajax-cl-warning "Принять" {}
-                                            (js-text-compressor "
+(defn edit-file-dialog [files-entity f-id dialog-tag-id upd-fn]
+  (let [top-description-id (create-sub-e-group-id dialog-tag-id :top_description)
+        file (cdbsql/common-find files-entity f-id)]
+    (html
+     (modal-header (str "Редактирование файла " f-id " ?"))
+     (modal-body (list
+                  (div-form-group nil "Текстовая подпись" 3 8
+                                  (text-field {:class "form-control" :placeholder "Текстовая подпись..."}
+                                              top-description-id (:top_description file) )
+                                  )))
+     (modal-footer (list
+                    (a-button-dialog-ajax-cl-warning
+                     "Принять" {}
+                     (js-text-compressor "
 $.ajax({
 url: \"/files/file/update/" f-id "\",
 data: { top_description: $(\"#" (name top-description-id) "\").val() },
@@ -1668,22 +1689,21 @@ cache: false,
 success: function() {
 " upd-fn "
 }});
-
 "))
-           " "
-           (button-close-modal "Отмена")
-
-           ])))
+                    " "
+                    (button-close-modal "Отмена" ))))))
 
 (defn delete-entity-file?-question-dialog [entity-key e-id f-id dialog-tag-id upd-fn]
-  (html (str "Удалить фаил  " f-id " ?")
-        [:div
-         (a-button-dialog-ajax-cl-warning
-          "Удалить" {}
-          (ajax-ua (url "/files/" entity-key "/" e-id "/delfile/" f-id ) (or upd-fn ""))) " "
+  (html
+   (modal-header (str "Удаление файла №" f-id))
+   (modal-body "Удалить фаил?")
+   (modal-footer
+    (list
+     (a-button-dialog-ajax-cl-warning
+      "Удалить" {}
+      (ajax-ua (url "/files/" entity-key "/" e-id "/delfile/" f-id ) (or upd-fn ""))) " "
 
-         (button-close-modal "Отмена")
-         ]))
+      (button-close-modal "Отмена") ) )))
 
 (defn delete-entity-file [files-entitys-map entity-key e-id f-id]
   (println entity-key " " e-id " " f-id )
@@ -1740,7 +1760,7 @@ success: function() {
 
     ;; Содержимое диалога на редактирование
     (GET "/files/editfile/:f-id/edit-dialog" [f-id dialog-tag-id upd-fn]
-         (edit-file-dialog f-id dialog-tag-id upd-fn))
+         (edit-file-dialog files-entity (Long/parseLong f-id) dialog-tag-id upd-fn))
 
     ;; Удаление привязки сущьности к файлу
     (GET "/files/file/update/:id" [id top_description]
@@ -1820,8 +1840,8 @@ $(\"#" (name link-id) "\").html(\"/image\" + url);
                                                            :del-dialog-tag-id del-dialog-id })
         files-list-div-id))
 
-     (dialog-ajax edit-dialog-id "Редактирование записи..." "Подвал")
-     (dialog-ajax del-dialog-id "Удаление записи..." "Подвал")
+     (dialog-ajax edit-dialog-id)
+     (dialog-ajax del-dialog-id)
      ]))
 
 ;; END Files table list
@@ -1871,14 +1891,16 @@ $(\"#" (name link-id) "\").html(\"/image\" + url);
 
                             :del-dialog #(vector :response (let [{{id :id} :params} %]
                                                              (html
-                                                              (str "Запись id: " id)
-                                                              [:div {:style "display:inline"}
-                                                               (actus-button-wapl-warning :del "Удалить!" {:id id}) " "
-                                                               (button-close-modal "Отмена")
-                                                               ])))
+                                                              (modal-header (str "Удаление записи №" id))
+                                                              (modal-body (str "Удалить запись № " id " ?"))
+                                                              (modal-footer
+                                                               (list
+                                                                (actus-button-wapl-warning :del "Удалить!" {:id id}) " "
+                                                                (button-close-modal "Отмена") )))))
 
                             :info-dialog #(vector :response (let [{{id :id} :params} %]
-                                                              (html (str "Запись id: " id))))
+                                                              (html (modal-header (str "Информация по записи №" id))
+                                                                    (modal-body (str "Запись id: " id)))))
                             } (or add-actus-map {}))]
 
     (actus-in-form
@@ -1924,10 +1946,10 @@ $(\"#" (name link-id) "\").html(\"/image\" + url);
                          :0)
 
                         (when-not (nil? (:del  t-actus-map))
-                          (dialog-ajax :dialog_delete "Удаление записи..." "Подвал"))
+                          (dialog-ajax :dialog_delete ))
 
                         (when-not (nil? (:info-dialog  t-actus-map))
-                          (dialog-ajax :dialog_info "Информация по записи" "Подвал"))
+                          (dialog-ajax :dialog_info ))
 
                         (:after-table some-content)
 

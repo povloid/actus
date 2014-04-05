@@ -148,6 +148,6 @@
   (let [[entity field] (files-entitys-map entity-key)]
     (delete entity (where (and (= :files_id f-id) (= field e-id))))))
 
-
+ 
 (defn save-file [files vals]
   (common-save-for-id files vals))
