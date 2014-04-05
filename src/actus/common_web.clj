@@ -380,11 +380,9 @@
 
 (defmacro js-text-compressor [& text]
   (println "!js-text-compressor")
-  (->> (if (> (count text) 1)
-         (map #(if (string? %) (js-text-compressor- %) %) text)
-         `[(js-text-compressor- text)])
-       (into (list str))
-       reverse))
+  (let [b# (map #(if (string? %) (js-text-compressor- %) %) text)]
+    `(str ~@b#)))
+
 
 (defmacro js-text-compressor-no
   "Unformatted mock"
