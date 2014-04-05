@@ -19,24 +19,28 @@
             ))
 
 
-(declare alert- alert-page)
-
+;;(declare alert- alert-page )
 
 ;;**************************************************************************************************
-;;* BEGIN PATH
-;;* tag: <path>
+;;* BEGIN common tools
+;;* tag: <common tools>
 ;;*
-;;* description: Пути
+;;* description:
 ;;*
 ;;**************************************************************************************************
 
-(def path-actus-root "/actus")
+(defn assoc-maps-with-cycle-value [maps-list upd-key cycle-vals]
+  (map #(assoc % upd-key %2) maps-list (cycle cycle-vals)))
 
-(defmacro path-actus [path]
-  (let [p (str path-actus-root path)]
-    p))
+(defn create-sub-e-group-id [e-group-id id]
+  (-> (str (name e-group-id) "_" (name id))
+      (clojure.string/replace #"-" "_")
+      keyword))
 
-;; END PATH
+(defn get-param [{params :params} k default]
+  (let [{n k :or {n default}} params] n))
+
+;; END common tools
 ;;..................................................................................................
 
 ;;**************************************************************************************************
@@ -132,77 +136,6 @@
 ;; END Translit
 ;;..................................................................................................
 
-
-;;------------------------------------------------------------------------------
-;; BEGIN: TEMPLATE
-;; tag: <template>
-;; description: Основной шаблон
-;;------------------------------------------------------------------------------
-
-(def head
-  [:head
-   [:title "Politrend"]
-   [:meta {:charset "utf-8" :name "viewport" :content "width=device-width, initial-scale=1"}]
-
-   (include-css (path-actus "/css/bootstrap.css"))
-   (include-css (path-actus "/css/actus.css"))
-   ;;(include-css "/css/bootswatch.min.css")
-
-   (include-js  (path-actus "/js/jquery-2.1.0.min.js"))
-   (include-js  (path-actus "/js/ckeditor/ckeditor.js"))
-   ])
-
-(def page-footer
-  [:footer "Подвал"])
-
-(defmacro actus-content-template [navbar-panel]
-  (let [n 'actus-content-template]
-    `(def ~n (fn n [content#]
-               (html5 {:lang "ru"}
-                      head
-                      [:body
-                       [:nav ~navbar-panel]
-                       [:br]
-                       [:br]
-                       [:br]
-
-                       [:div {:class "container"}
-
-                        content#
-                        ;;(repeat 20 content)
-
-                        [:br]
-                        ]
-                       page-footer
-
-                       (include-js (path-actus "/js/bootstrap.min.js"))
-                       ]
-                      )))))
-
-
-;; END TEMPLATE
-;;..............................................................................
-
-;; END TEMPLATES
-;;..................................................................................................
-
-
-;;**************************************************************************************************
-;;* BEGIN common tools
-;;* tag: <common tools>
-;;*
-;;* description:
-;;*
-;;**************************************************************************************************
-
-(defn assoc-maps-with-cycle-value [maps-list upd-key cycle-vals]
-  (map #(assoc % upd-key %2) maps-list (cycle cycle-vals)))
-
-;; END common tools
-;;..................................................................................................
-
-
-
 ;;**************************************************************************************************
 ;;* BEGIN FORMATTERS
 ;;* tag: <formatters>
@@ -228,49 +161,145 @@
 ;;..................................................................................................
 
 ;;**************************************************************************************************
-;;* BEGIN Javascript tools
-;;* tag: <javascript>
+;;* BEGIN LAYOUT ELEMENTS
+;;* tag: <layout>
 ;;*
-;;* description: Утилиты для работы с кодом javascript
+;;* description: Элементы для разметки
 ;;*
 ;;**************************************************************************************************
 
-(defn create-sub-e-group-id [e-group-id id]
-  (-> (str (name e-group-id) "_" (name id))
-      (clojure.string/replace #"-" "_")
-      keyword))
+;;------------------------------------------------------------------------------
+;; BEGIN: Some layout macross
+;; tag: <layout>
+;; description: Макросы для разметки
+;;------------------------------------------------------------------------------
 
-(defn get-param [{params :params} k default]
-  (let [{n k :or {n default}} params] n))
+(defmacro div-bs-docs-section [& body]
+  `[:div {:class "bs-docs-section"}  ~@body] )
 
-(defn js-text-compressor-
-  "Сжимает текст в одну строчку. Убирает пробелы и переносы, для коментариев надо применять /*....*/"
-  [text]
-  (-> text
-      (clojure.string/replace #"\n" " ")
-      (clojure.string/replace #"\s+" " ")
-      ))
+(defmacro div-row [& body]
+  `[:div {:class "row"} ~@body] )
 
-(defmacro js-text-compressor [& text]
-  (println "!js-text-compressor")
-  (->> (if (> (count text) 1)
-         (map #(if (string? %) (js-text-compressor- %) %) text)
-         `[(js-text-compressor- text)])
-       (into (list str))
-       reverse))
+(defmacro div-col-lg [cols & body]
+  `[:div {:class (str "col-lg-" ~cols)}  ~@body] )
 
-(defmacro js-text-compressor-no
-  "Unformatted mock"
-  [& body] `(str ~@body))
+(defmacro div-well_bs-component [& body]
+  `[:div {:class "well bs-component"}  ~@body] )
 
-(defn js-e-set-1 [id]
-  (str " this.form.elements['" (name id) "'].value = 1;"))
+(defmacro div-form-horizontal [& body]
+  `[:div {:class "form-horizontal"} ~@body] )
 
-(defn js-e-inc [id]
-  (str " v = this.form.elements['" (name id) "'].value; this.form.elements['" (name id) "'].value = parseInt(v) + 1;"))
+;; END Some layout macross
+;;..............................................................................
 
-(defn js-e-dec [id]
-  (str " v = this.form.elements['" (name id) "'].value; if(v > 1) this.form.elements['" (name id) "'].value = parseInt(v) - 1;"))
+;;------------------------------------------------------------------------------
+;; BEGIN: ROW LAYOUT
+;; tag: <row>
+;; description:
+;;------------------------------------------------------------------------------
+
+(defn page-row- [cols & body]
+  (into (div-col-lg cols) body))
+
+(defmacro page-row [col-lg & body]
+  (apply page-row- (into [col-lg] body)))
+
+
+
+;; END ROW LAYOUT
+;;..............................................................................
+
+;;------------------------------------------------------------------------------
+;; BEGIN: Form layouts
+;; tag: <form layouts>
+;; description: Элементы разметки для формы
+;;------------------------------------------------------------------------------
+
+(defn div-form- [legend & body]
+  (div-well_bs-component
+   (div-form-horizontal
+    (into [:fieldset  [:legend legend]] body) )))
+
+(defmacro div-form-1 [legend & body]
+  (apply div-form- (into [legend] body)))
+
+(defmacro page-form-1 [legend col-lg  & body]
+  (page-row- col-lg
+             (apply div-form- (into [legend] body))))
+
+(defn page-form-1-fn [legend col-lg body]
+  (page-row- col-lg (apply div-form- (into [legend] body))))
+
+
+;; END Form layouts
+;;..............................................................................
+
+
+;;**************************************************************************************************
+;;* BEGIN panels
+;;* tag: <panels>
+;;*
+;;* description: Панели
+;;*
+;;**************************************************************************************************
+
+(defn a-panel-heading [content]
+  [:div {:class "panel-heading"} content])
+
+(defn a-panel-body [content]
+  [:div {:class "panel-body"} content])
+
+(defn a-panel-footer [content]
+  [:div {:class "panel-footer"} ])
+
+(defn a-panel [content & [attrs]]
+  [:div (merge {:class "panel panel-default"} attrs) content  ])
+
+(defn a-panel-primary [content & [attrs]]
+  (a-panel content (merge {:class "panel panel-primary"} attrs)))
+
+(defn a-panel-success [content & [attrs]]
+  (a-panel content (merge {:class "panel panel-success"} attrs)))
+
+(defn a-panel-warning [content & [attrs]]
+  (a-panel content (merge {:class "panel panel-warning"} attrs)))
+
+(defn a-panel-danger [content & [attrs]]
+  (a-panel content (merge {:class "panel panel-danger"} attrs)))
+
+(defn a-panel-info [content & [attrs]]
+  (a-panel content (merge {:class "panel panel-info"} attrs)))
+
+;; END panels
+;;..................................................................................................
+
+;;------------------------------------------------------------------------------
+;; BEGIN: Message boxes
+;; tag: <messagebox>
+;; description: Рамки вывода различных сообщений
+;;------------------------------------------------------------------------------
+
+(defn alert- [alert-type col-lg message-body]
+  (let [a-type  (or (alert-type {:warning "alert-warning"
+                                 :danger "alert-danger"
+                                 :success "alert-success"
+                                 :info "alert-info"}) "alert-info") ]
+    (div-col-lg col-lg
+                [:div {:class (str "alert alert-dismissable " a-type)}
+                 [:button {:type "button" :class "close" :data-dismiss "alert"} "x"]
+                 message-body])))
+
+(defn alert-page [alert-type message-body]
+  (div-bs-docs-section
+   (div-row
+    (alert- alert-type 12 message-body)
+    )))
+
+;; END Message boxes
+;;..............................................................................
+
+;; END LAYOUT ELEMENTS
+;;..................................................................................................
 
 
 ;;**************************************************************************************************
@@ -330,11 +359,45 @@
 (defn a-button-onclick-link [value attrs onclick]
   (a-button-link value (assoc attrs :onclick onclick)))
 
-
-
 ;; END Button
 ;;..................................................................................................
 
+;;**************************************************************************************************
+;;* BEGIN Javascript tools
+;;* tag: <javascript>
+;;*
+;;* description: Утилиты для работы с кодом javascript
+;;*
+;;**************************************************************************************************
+
+(defn js-text-compressor-
+  "Сжимает текст в одну строчку. Убирает пробелы и переносы, для коментариев надо применять /*....*/"
+  [text]
+  (-> text
+      (clojure.string/replace #"\n" " ")
+      (clojure.string/replace #"\s+" " ")
+      ))
+
+(defmacro js-text-compressor [& text]
+  (println "!js-text-compressor")
+  (->> (if (> (count text) 1)
+         (map #(if (string? %) (js-text-compressor- %) %) text)
+         `[(js-text-compressor- text)])
+       (into (list str))
+       reverse))
+
+(defmacro js-text-compressor-no
+  "Unformatted mock"
+  [& body] `(str ~@body))
+
+(defn js-e-set-1 [id]
+  (str " this.form.elements['" (name id) "'].value = 1;"))
+
+(defn js-e-inc [id]
+  (str " v = this.form.elements['" (name id) "'].value; this.form.elements['" (name id) "'].value = parseInt(v) + 1;"))
+
+(defn js-e-dec [id]
+  (str " v = this.form.elements['" (name id) "'].value; if(v > 1) this.form.elements['" (name id) "'].value = parseInt(v) - 1;"))
 
 ;;------------------------------------------------------------------------------
 ;; BEGIN: AJAX
@@ -400,17 +463,8 @@ $( \"#" (name div-id) "\" ).html(data);
 (defn ajax-fn-udate-div-p-url [f-name div-id]
   (ajax-fn-udate-div-au-p-url f-name div-id ""))
 
-
-
-
-
-
-
-
 ;; END AJAX
 ;;..............................................................................
-
-
 ;; END Javascript tools
 ;;..................................................................................................
 
@@ -500,18 +554,10 @@ $( \"#" (name div-id) "\" ).html(data);
 (defn a-button-dialog-ajax-cl-link [value attrs onclick]
   (a-button-onclick-link value (merge attrs {:data-dismiss "modal" }) onclick))
 
-
-
 ;; END Ajax dialog
 ;;..............................................................................
-
-
 ;; END Dialogs
 ;;..................................................................................................
-
-
-
-
 
 ;;**************************************************************************************************
 ;;* BEGIN table
@@ -862,6 +908,65 @@ $( \"#" (name div-id) "\" ).html(data);
 (def actus-has-es-keyword :actus-has-es)
 (def actus-alerts-keyword :actus-alerts)
 
+
+;; ФУНКЦИИ
+(def path-actus-root "/actus")
+
+(defmacro path-actus [path]
+  (let [p (str path-actus-root path)]
+    p))
+
+
+;;------------------------------------------------------------------------------
+;; BEGIN: TEMPLATE
+;; tag: <template>
+;; description: Основной шаблон
+;;------------------------------------------------------------------------------
+
+(def head
+  [:head
+   [:title "Politrend"]
+   [:meta {:charset "utf-8" :name "viewport" :content "width=device-width, initial-scale=1"}]
+
+   (include-css (path-actus "/css/bootstrap.css"))
+   (include-css (path-actus "/css/actus.css"))
+   ;;(include-css "/css/bootswatch.min.css")
+
+   (include-js  (path-actus "/js/jquery-2.1.0.min.js"))
+   (include-js  (path-actus "/js/ckeditor/ckeditor.js"))
+   ])
+
+(def page-footer
+  [:footer "Подвал"])
+
+(defmacro actus-content-template [navbar-panel]
+  (let [n 'actus-content-template]
+    `(def ~n (fn n [content#]
+               (html5 {:lang "ru"}
+                      head
+                      [:body
+                       [:nav ~navbar-panel]
+                       [:br]
+                       [:br]
+                       [:br]
+
+                       [:div {:class "container"}
+
+                        content#
+                        ;;(repeat 20 content)
+
+                        [:br]
+                        ]
+                       page-footer
+
+                       (include-js (path-actus "/js/bootstrap.min.js"))
+                       ]
+                      )))))
+
+;; END TEMPLATE
+;;..............................................................................
+
+
 ;;------------------------------------------------------------------------------
 ;; BEGIN: Alerts
 ;; tag: <alert>
@@ -874,7 +979,6 @@ $( \"#" (name div-id) "\" ).html(data);
 
 (defn add-errors [{actus-errors actus-errors-keyword :or {actus-errors []} :as request} errors]
   (assoc request actus-errors-keyword (into actus-errors errors)))
-
 
 (defn actus-add-alert
   "Добавляет сообщение в массив сообщений по ключу :actus-alerts
@@ -901,11 +1005,31 @@ $( \"#" (name div-id) "\" ).html(data);
    id has-es-type]
   (assoc request actus-has-es-keyword (assoc actus-has-es id has-es-type)))
 
+(defn e-has-? [{actus-has-es actus-has-es-keyword} s id]
+  (str s
+       (if (nil? actus-has-es) ""
+           (let [es (actus-has-es id)]
+             (if (nil? es) ""
+                 (es {:warning " has-warning"
+                      :error " has-error"
+                      :success " has-success"}))))))
+
+(defn div-form-group [request label col-lg-label col-lg-input
+                      [_ {id :id} :as input]]
+  [:div {:class (e-has-? request "form-group" (keyword id)) }
+   [:label {:for id :class (str "col-lg-" col-lg-label " control-label")} label]
+   [:div {:class (str "col-lg-" col-lg-input)}
+    input ;;[:input {:type "text" :class "form-control" :id "inputEmail" :placeholder "Email"}]
+    ]])
+
 ;; END Alerts
 ;;..............................................................................
 
-
-;; ACTUS-CORE ---------------------------------------------------------------------------
+;;------------------------------------------------------------------------------
+;; BEGIN: ACTUS CORE
+;; tag: <actus core>
+;; description: Основной движек
+;;------------------------------------------------------------------------------
 
 (defn actus-in-form
   " Главная функция для отработки событий
@@ -967,7 +1091,6 @@ $( \"#" (name div-id) "\" ).html(data);
     )
   )
 
-
 (defn actus-form-head [id]
 
   "Заголовок, вынесенный в def для оптимизации по скорости"
@@ -1025,7 +1148,9 @@ $(window).load(function () {
   )
 
 
-;; BUTTONS ------------------------------------------------------------------------------------------
+;; END ACTUS CORE
+;;..............................................................................
+
 
 
 ;;------------------------------------------------------------------------------
@@ -1077,11 +1202,8 @@ $(window).load(function () {
 ;; END Actus button functional
 ;;..............................................................................
 
-
 ;; END ACTUS
 ;;..................................................................................................
-
-
 
 ;;**************************************************************************************************
 ;;* BEGIN Url tools
@@ -1114,7 +1236,6 @@ $(window).load(function () {
                 ))
       )))
 
-
 (defn add-params-to-url
   "Добавляет парамтры в url или списка {} где есть уже другие параметры"
   [url-str add-params]
@@ -1123,6 +1244,135 @@ $(window).load(function () {
     (str url-str "&" (url-encode add-params))))
 
 ;; END Url tools
+;;..................................................................................................
+
+;;**************************************************************************************************
+;;* BEGIN Entity mapping and convertation
+;;* tag: <entyty map>
+;;*
+;;* description: Функционал для мапирования и конвертации форм
+;;*
+;;**************************************************************************************************
+;; Расскоментировать для тестов и отладки
+(comment
+  (def test-entity {:id 0
+                    :keyname "Keyname entity"
+                    :num 10
+                    :somevalue ""
+                    :description "some description entity...."})
+
+  (def test-form {:ids "1"
+                  :keyname "Keyname form"
+                  :num "100"
+                  :description "some description form ...."})
+
+
+  (def form-<map>-entity
+    [
+     {:e :id
+      :f :ids
+      :f-<-e str
+      :f->-e #(Integer/parseInt %)
+      :e-fn-rm? empty?
+      }
+
+     {:e :keyname
+      :f :keyname
+      :f-<-e str
+      :f->-e str
+      }
+
+     {:e :description
+      :f :description
+      :f-<-e str
+      :f->-e str
+      }
+
+     ])
+  )
+
+(defn fill-form-<map>-entity [fme form direction entity]
+  (let [[to-k f-conv-k from-k
+         from-e to-e] (cond (= :-<- direction) [:f :f-<-e :e entity form]
+                            (= :->- direction) [:e :f->-e :f form entity]
+                            :else (throw (Exception. (str "Error direction key '" direction  "' . Mast be only ':-<-' or ':->-' ."))))]
+    (->
+     ;; Проходимся и пробуем сконвертировать
+     (reduce (fn [[a e] {to to-k from from-k f-conv f-conv-k
+                         t-e-fn-rm? :e-fn-rm? }]
+               (println ">>>>> " to  " >>> " f-conv "")
+               (let [value (from from-e)
+                     e-fn-rm?  (if (and (= f-conv-k :f->-e)
+                                        (not (nil? t-e-fn-rm?)))
+                                 t-e-fn-rm?
+                                 (fn [_] false))]
+                 (try
+                   [(if (or (nil? f-conv) (e-fn-rm? value))
+                      (dissoc a to)
+                      (assoc a to (f-conv value)) ) e]
+                   (catch Exception ex
+                     [a (conj e [from (str "Нерпавильный формат поля: " to ) (.getMessage ex)])])
+                   )))
+             [to-e []] fme)
+
+     ;; Формируеем вывод
+     ((fn [[to-e errors]]
+        (cond (= :-<- direction) {:form to-e :entity entity :errors errors}
+              (= :->- direction) {:form form :entity to-e :errors errors}
+              :else (throw (Exception. "Error key"))
+              )))
+     )))
+
+(defn try-fill-entity [{params :params :as request} fme entity entity-key-in-request]
+  (let [{entity :entity errors :errors} (fill-form-<map>-entity fme params :->- entity)]
+    (println entity errors)
+    (if (empty? errors) (assoc request entity-key-in-request entity)
+        (reduce (fn [request [input-id ex-text ex-message]]
+                  (-> request
+                      (actus-add-alert :danger (str ex-text ": " ex-message))
+                      (actus-add-e-has input-id :error)
+                      ;;(#(do (println ">>>" %) %))
+                      ))
+                (add-errors request errors) ;;<----
+                errors)
+        )))
+
+(defn try-fill-form [{params :params :as request} fme entity]
+  (let [{new-params :form errors :errors} (fill-form-<map>-entity fme params :-<- entity)]
+    (if (empty? errors) (assoc request :params new-params)
+        (reduce (fn [request [input-id ex-text ex-message]]
+                  (-> request
+                      (actus-add-alert :danger (str ex-text ": " ex-message))
+                      ))
+                (add-errors request errors)
+                errors )
+        )))
+
+(defn do-form->- [request functions]
+  ;;(println "start do-form:")
+  (vector :form
+          (loop [step 1 [request error] [request false] do-fn (first functions) functions-list (rest functions)]
+            ;;(println step)
+            (cond (not (empty? (actus-errors-keyword request))) request ;; если были ошибки от конвертатора
+                  (true? error) request
+                  (nil? do-fn) request
+                  :else (recur (inc step)
+                               (try [(do-fn request) false]
+                                    (catch Exception ex
+                                      [(actus-add-alert request :danger
+                                                        (str "Операция не проведена, на шаге (" step ") произошла ошибка: "
+                                                             (.getMessage ex)))
+                                       true] ))
+
+                               (first functions-list) (rest functions-list))))))
+
+
+(defmacro do-form-from-request-> [& body]
+  (let [rqname (gensym "request")]
+    `(fn [~rqname]
+       (do-form->- ~rqname [ ~@body ]))))
+
+;; END Entity mapping and convertation
 ;;..................................................................................................
 
 ;;**************************************************************************************************
@@ -1577,333 +1827,9 @@ $(\"#" (name link-id) "\").html(\"/image\" + url);
 ;; END Files table list
 ;;..............................................................................
 
-
-
-
-
 ;; END INPUT ELEMENTS
 ;;..................................................................................................
 
-
-;;**************************************************************************************************
-;;* BEGIN LAYOUT ELEMENTS
-;;* tag: <layout>
-;;*
-;;* description: Элементы для разметки
-;;*
-;;**************************************************************************************************
-
-;;------------------------------------------------------------------------------
-;; BEGIN: Some layout macross
-;; tag: <layout>
-;; description: Макросы для разметки
-;;------------------------------------------------------------------------------
-
-(defmacro div-bs-docs-section [& body]
-  `[:div {:class "bs-docs-section"}  ~@body] )
-
-(defmacro div-row [& body]
-  `[:div {:class "row"} ~@body] )
-
-(defmacro div-col-lg [cols & body]
-  `[:div {:class (str "col-lg-" ~cols)}  ~@body] )
-
-(defmacro div-well_bs-component [& body]
-  `[:div {:class "well bs-component"}  ~@body] )
-
-(defmacro div-form-horizontal [& body]
-  `[:div {:class "form-horizontal"} ~@body] )
-
-;; END Some layout macross
-;;..............................................................................
-
-;;------------------------------------------------------------------------------
-;; BEGIN: ROW LAYOUT
-;; tag: <row>
-;; description:
-;;------------------------------------------------------------------------------
-
-(defn page-row- [cols & body]
-  (into (div-col-lg cols) body))
-
-(defmacro page-row [col-lg & body]
-  (apply page-row- (into [col-lg] body)))
-
-;; END ROW LAYOUT
-;;..............................................................................
-
-
-;;------------------------------------------------------------------------------
-;; BEGIN: Form layouts
-;; tag: <form layouts>
-;; description: Элементы разметки для формы
-;;------------------------------------------------------------------------------
-
-(defn div-form- [legend & body]
-  (div-well_bs-component
-   (div-form-horizontal
-    (into [:fieldset  [:legend legend]] body) )))
-
-(defmacro div-form-1 [legend & body]
-  (apply div-form- (into [legend] body)))
-
-(defmacro page-form-1 [legend col-lg  & body]
-  (page-row- col-lg
-             (apply div-form- (into [legend] body))))
-
-(defn page-form-1-fn [legend col-lg body]
-  (page-row- col-lg (apply div-form- (into [legend] body))))
-
-
-;; FORM GROUP ------------------------------------------
-
-(defn e-has-? [{actus-has-es actus-has-es-keyword} s id]
-  (str s
-       (if (nil? actus-has-es) ""
-           (let [es (actus-has-es id)]
-             (if (nil? es) ""
-                 (es {:warning " has-warning"
-                      :error " has-error"
-                      :success " has-success"}))))))
-
-
-(defn div-form-group [request label col-lg-label col-lg-input
-                      [_ {id :id} :as input]]
-  [:div {:class (e-has-? request "form-group" (keyword id)) }
-   [:label {:for id :class (str "col-lg-" col-lg-label " control-label")} label]
-   [:div {:class (str "col-lg-" col-lg-input)}
-    input ;;[:input {:type "text" :class "form-control" :id "inputEmail" :placeholder "Email"}]
-    ]])
-
-
-;; END Form layouts
-;;..............................................................................
-
-;;**************************************************************************************************
-;;* BEGIN panels
-;;* tag: <panels>
-;;*
-;;* description: Панели
-;;*
-;;**************************************************************************************************
-
-(defn a-panel-heading [content]
-  [:div {:class "panel-heading"} content])
-
-(defn a-panel-body [content]
-  [:div {:class "panel-body"} content])
-
-(defn a-panel-footer [content]
-  [:div {:class "panel-footer"} ])
-
-(defn a-panel [content & [attrs]]
-  [:div (merge {:class "panel panel-default"} attrs) content  ])
-
-(defn a-panel-primary [content & [attrs]]
-  (a-panel content (merge {:class "panel panel-primary"} attrs)))
-
-(defn a-panel-success [content & [attrs]]
-  (a-panel content (merge {:class "panel panel-success"} attrs)))
-
-(defn a-panel-warning [content & [attrs]]
-  (a-panel content (merge {:class "panel panel-warning"} attrs)))
-
-(defn a-panel-danger [content & [attrs]]
-  (a-panel content (merge {:class "panel panel-danger"} attrs)))
-
-(defn a-panel-info [content & [attrs]]
-  (a-panel content (merge {:class "panel panel-info"} attrs)))
-
-
-
-;; END panels
-;;..................................................................................................
-
-
-
-;;------------------------------------------------------------------------------
-;; BEGIN: Message boxes
-;; tag: <messagebox>
-;; description: Рамки вывода различных сообщений
-;;------------------------------------------------------------------------------
-
-(defn alert- [alert-type col-lg message-body]
-  (let [a-type  (or (alert-type {:warning "alert-warning"
-                                 :danger "alert-danger"
-                                 :success "alert-success"
-                                 :info "alert-info"}) "alert-info") ]
-    (div-col-lg col-lg
-                [:div {:class (str "alert alert-dismissable " a-type)}
-                 [:button {:type "button" :class "close" :data-dismiss "alert"} "x"]
-                 message-body])))
-
-(defn alert-page [alert-type message-body]
-  (div-bs-docs-section
-   (div-row
-    (alert- alert-type 12 message-body)
-    )))
-
-;; END Message boxes
-;;..............................................................................
-
-;; END LAYOUT ELEMENTS
-;;..................................................................................................
-
-
-
-;;**************************************************************************************************
-;;* BEGIN Entity mapping and convertation
-;;* tag: <entyty map>
-;;*
-;;* description: Функционал для мапирования и конвертации форм
-;;*
-;;**************************************************************************************************
-
-
-;; Расскоментировать для тестов и отладки
-(comment
-  (def test-entity {:id 0
-                    :keyname "Keyname entity"
-                    :num 10
-                    :somevalue ""
-                    :description "some description entity...."})
-
-  (def test-form {:ids "1"
-                  :keyname "Keyname form"
-                  :num "100"
-                  :description "some description form ...."})
-
-
-  (def form-<map>-entity
-    [
-     {:e :id
-      :f :ids
-      :f-<-e str
-      :f->-e #(Integer/parseInt %)
-      :e-fn-rm? empty?
-      }
-
-     {:e :keyname
-      :f :keyname
-      :f-<-e str
-      :f->-e str
-      }
-
-     {:e :description
-      :f :description
-      :f-<-e str
-      :f->-e str
-      }
-
-     ])
-  )
-
-(defn fill-form-<map>-entity [fme form direction entity]
-  (let [[to-k f-conv-k from-k
-         from-e to-e] (cond (= :-<- direction) [:f :f-<-e :e entity form]
-                            (= :->- direction) [:e :f->-e :f form entity]
-                            :else (throw (Exception. (str "Error direction key '" direction  "' . Mast be only ':-<-' or ':->-' ."))))]
-    (->
-     ;; Проходимся и пробуем сконвертировать
-     (reduce (fn [[a e] {to to-k from from-k f-conv f-conv-k
-                         t-e-fn-rm? :e-fn-rm? }]
-               (println ">>>>> " to  " >>> " f-conv "")
-               (let [value (from from-e)
-                     e-fn-rm?  (if (and (= f-conv-k :f->-e)
-                                        (not (nil? t-e-fn-rm?)))
-                                 t-e-fn-rm?
-                                 (fn [_] false))]
-                 (try
-                   [(if (or (nil? f-conv) (e-fn-rm? value))
-                      (dissoc a to)
-                      (assoc a to (f-conv value)) ) e]
-                   (catch Exception ex
-                     [a (conj e [from (str "Нерпавильный формат поля: " to ) (.getMessage ex)])])
-                   )))
-             [to-e []] fme)
-
-     ;; Формируеем вывод
-     ((fn [[to-e errors]]
-        (cond (= :-<- direction) {:form to-e :entity entity :errors errors}
-              (= :->- direction) {:form form :entity to-e :errors errors}
-              :else (throw (Exception. "Error key"))
-              )))
-     )))
-
-(defn try-fill-entity [{params :params :as request} fme entity entity-key-in-request]
-  (let [{entity :entity errors :errors} (fill-form-<map>-entity fme params :->- entity)]
-    (println entity errors)
-    (if (empty? errors) (assoc request entity-key-in-request entity)
-        (reduce (fn [request [input-id ex-text ex-message]]
-                  (-> request
-                      (actus-add-alert :danger (str ex-text ": " ex-message))
-                      (actus-add-e-has input-id :error)
-                      ;;(#(do (println ">>>" %) %))
-                      ))
-                (add-errors request errors) ;;<----
-                errors)
-        )))
-
-(defn try-fill-form [{params :params :as request} fme entity]
-  (let [{new-params :form errors :errors} (fill-form-<map>-entity fme params :-<- entity)]
-    (if (empty? errors) (assoc request :params new-params)
-        (reduce (fn [request [input-id ex-text ex-message]]
-                  (-> request
-                      (actus-add-alert :danger (str ex-text ": " ex-message))
-                      ))
-                (add-errors request errors)
-                errors )
-        )))
-
-(defn do-form->- [request functions]
-  ;;(println "start do-form:")
-  (vector :form
-          (loop [step 1 [request error] [request false] do-fn (first functions) functions-list (rest functions)]
-            ;;(println step)
-            (cond (not (empty? (actus-errors-keyword request))) request ;; если были ошибки от конвертатора
-                  (true? error) request
-                  (nil? do-fn) request
-                  :else (recur (inc step)
-                               (try [(do-fn request) false]
-                                    (catch Exception ex
-                                      [(actus-add-alert request :danger
-                                                        (str "Операция не проведена, на шаге (" step ") произошла ошибка: "
-                                                             (.getMessage ex)))
-                                       true] ))
-
-                               (first functions-list) (rest functions-list))))))
-
-
-(defmacro do-form-from-request-> [& body]
-  (let [rqname (gensym "request")]
-    `(fn [~rqname]
-       (do-form->- ~rqname [ ~@body ]))))
-
-;; END Entity mapping and convertation
-;;..................................................................................................
-
-
-
-
-;;..................................................................................................
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;; end
 
 
 ;;**************************************************************************************************
@@ -2028,6 +1954,7 @@ $(\"#" (name link-id) "\").html(\"/image\" + url);
                                       save-entity-request-fn
                                       convertors-and-validators
                                       add-actus-map
+                                      form-caption
                                       form-fields]
 
   (let [form-<map>-entity (into [;; Связывание полей
@@ -2084,7 +2011,7 @@ $(\"#" (name link-id) "\").html(\"/image\" + url);
           ;;(alert-page :info (str params))
           ;;(println ">>>>>>>>>" request)
 
-          (page-form-1-fn "LEGEND" 12
+          (page-form-1-fn (or form-caption "LEGEND") 12
                           (conj
 
                            (form-fields request params id)
