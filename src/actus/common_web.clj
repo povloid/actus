@@ -1313,7 +1313,7 @@ $(window).load(function () {
      ;; Проходимся и пробуем сконвертировать
      (reduce (fn [[a e] {to to-k from from-k f-conv f-conv-k
                          t-e-fn-rm? :e-fn-rm? }]
-               (println ">>>>> " to  " >>> " f-conv "")
+               ;; (println ">>>>> " to  " >>> " f-conv "") ;; DEBUG OUTPUT
                (let [value (from from-e)
                      e-fn-rm?  (if (and (= f-conv-k :f->-e)
                                         (not (nil? t-e-fn-rm?)))
