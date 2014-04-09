@@ -71,6 +71,13 @@
            (assoc vals field-key (fn-transformation v)))))
    vals field-keys))
 
+
+(defn fields-transformation-clj-keyword->-string [field-keys vals]
+  (common-fields-transformation field-keys name vals))
+
+(defn fields-transformation-clj-keyword-<-string [field-keys vals]
+  (common-fields-transformation field-keys keyword vals))
+
 (defn fields-transformation-clj-time->-sql-time [field-keys vals]
   (common-fields-transformation field-keys
                                 #(tc/to-sql-time (tco/to-time-zone % (tco/default-time-zone)))
