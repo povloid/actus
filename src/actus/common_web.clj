@@ -1600,9 +1600,15 @@ progressbar.css('width','0%');
               :getfn (fn [row]
                        (let [url-path (str "/file" (:path row))]
                          (list
-                          [:a {:href url-path :target "_blank"} (:filename row)]
-                          [:br]
-                          (:top_description row))))
+                          [:div {:style "line-height: 1"}
+                           [:a {:href url-path :target "_blank"} (:filename row)]
+                           [:small
+                            [:br]
+                            [:var url-path]
+                            [:br]
+                            [:b "Подпись: "](:top_description row)
+                            ]])
+                         ))
               }
              ]
    })
@@ -1620,12 +1626,17 @@ progressbar.css('width','0%');
               :text "Наименование"
               :getfn (fn [row]
                        (let [url-path (str "/image" (:path row))]
-                         [:div
-                          [:img {:src url-path :alt "нет изобр." :height "42" :width "42"}]
-                          [:a {:href url-path :target "_blank"} (:filename row)]
-                          [:br]
-                          (:top_description row)
-                          ]))
+                         (list
+                          [:img {:src url-path :alt "нет изобр." :height "48" :width "48" :style "float:left; margin-right: 5px"}]
+                          [:div {:style "line-height: 1"}
+                           [:a {:href url-path :target "_blank"} (:filename row)]
+                           [:small
+                            [:br]
+                            [:var url-path]
+                            [:br]
+                            [:b "Подпись: "](:top_description row)
+                            ]])
+                         ))
               }
 
              ]
@@ -1640,6 +1651,7 @@ progressbar.css('width','0%');
     [:div
      (table-list :files (assoc (-> (cond (= group 0) table-files-list
                                          (= group 1) table-images-list
+                                         (= group 2) table-images-list
                                          :else table-files-list)
 
                                    (add-column
