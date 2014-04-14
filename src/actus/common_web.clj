@@ -1415,6 +1415,13 @@ $(window).load(function () {
   (let [{value id :or {value default-value}} params]
     (text-area (merge {:class "form-control"} attrs) id value)))
 
+(defn actus-select [params attrs id
+                    items get-item-fn
+                    default-value]
+  (let [{value id :or {value default-value}} params]
+    (drop-down (merge {:class "form-control"} attrs) id
+               (map get-item-fn items) value)))
+
 
 ;;------------------------------------------------------------------------------
 ;; BEGIN: File uploading
