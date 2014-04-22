@@ -1422,6 +1422,11 @@ $(window).load(function () {
     (drop-down (merge {:class "form-control"} attrs) id
                (map get-item-fn items) value)))
 
+(defn actus-checkbox [params attrs id default-value caption]
+  (let [{value id :or {value default-value}} params]
+    [:div {:class "checkbox"}
+     [:label (check-box attrs id value) caption]]))
+
 
 ;;------------------------------------------------------------------------------
 ;; BEGIN: File uploading
