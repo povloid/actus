@@ -1325,30 +1325,32 @@ $(window).load(function () {
                      ;; Групповые коллекционные варианты обработки
                      ;; {:e [:name] :f [:name] ....
                      (and (coll? to) (coll? from)) (do
-                                                     (println 1)
+                                                     ;;(println 1)
                                                      (f-conv a to from-e from))
                      ;; {:e :name :f [:name] ....
                      (coll? from) (do
-                                    (println 2)
+                                    ;;(println 2)
                                     (assoc a to (f-conv from-e from)))
                      ;; {:e [:name] :f :name ....
                      (coll? to) (do
-                                  (println 3)
+                                  ;;(println 3)
                                   (f-conv a to (from from-e)))
 
                      ;; Если с обоих сторон нет коллекция то проверяем на удаление
                      ;; {:f-conv nil e-fn-rm? (fn [v] .... true)
                      (or (nil? f-conv) (e-fn-rm? (from from-e))) (do
-                                                                   (println 4)
+                                                                   ;;(println 4)
                                                                    (dissoc a to))
                      :else (do
-                             (println 0)
+                             ;;(println 0)
                              (assoc a to (f-conv (from from-e)))))
                     e]
                    (catch Exception ex
                      [a
                       (if (coll? from)
-                        (reduce #(conj % [from (str "Нерпавильный формат поля: " %2 ) (.getMessage ex)]) to e)
+                        (do
+                          (println "ERROR>>> " from)
+                          (reduce #(conj % [%2 (str "Нерпавильный формат поля: " %2 ) (.getMessage ex)]) e from))
                         (conj e [from (str "Нерпавильный формат поля: " to ) (.getMessage ex)]))
                       ])
                    )))
