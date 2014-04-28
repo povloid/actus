@@ -1311,21 +1311,48 @@ $(window).load(function () {
                             :else (throw (Exception. (str "Error direction key '" direction  "' . Mast be only ':-<-' or ':->-' ."))))]
     (->
      ;; Проходимся и пробуем сконвертировать
-     (reduce (fn [[a e] {to to-k from from-k f-conv f-conv-k
-                         t-e-fn-rm? :e-fn-rm? }]
+     (reduce (fn [[a e] {to to-k from from-k f-conv f-conv-k t-e-fn-rm? :e-fn-rm?}]
+
                ;; (println ">>>>> " to  " >>> " f-conv "") ;; DEBUG OUTPUT
-               (let [value (from from-e)
-                     e-fn-rm?  (if (and (= f-conv-k :f->-e)
+
+               (let [e-fn-rm?  (if (and (= f-conv-k :f->-e)
                                         (not (nil? t-e-fn-rm?)))
                                  t-e-fn-rm?
                                  (fn [_] false))]
+
                  (try
-                   [(if (or (nil? f-conv) (e-fn-rm? value))
-                      (dissoc a to)
-                      (assoc a to (f-conv value)) ) e]
+                   [(cond
+                     ;; Групповые коллекционные варианты обработки
+                     ;; {:e [:name] :f [:name] ....
+                     (and (coll? to) (coll? from)) (do
+                                                     (println 1)
+                                                     (f-conv a to from-e from))
+                     ;; {:e :name :f [:name] ....
+                     (coll? from) (do
+                                    (println 2)
+                                    (assoc a to (f-conv from-e from)))
+                     ;; {:e [:name] :f :name ....
+                     (coll? to) (do
+                                  (println 3)
+                                  (f-conv a to (from from-e)))
+
+                     ;; Если с обоих сторон нет коллекция то проверяем на удаление
+                     ;; {:f-conv nil e-fn-rm? (fn [v] .... true)
+                     (or (nil? f-conv) (e-fn-rm? (from from-e))) (do
+                                                                   (println 4)
+                                                                   (dissoc a to))
+                     :else (do
+                             (println 0)
+                             (assoc a to (f-conv (from from-e)))))
+                    e]
                    (catch Exception ex
-                     [a (conj e [from (str "Нерпавильный формат поля: " to ) (.getMessage ex)])])
+                     [a
+                      (if (coll? from)
+                        (reduce #(conj % [from (str "Нерпавильный формат поля: " %2 ) (.getMessage ex)]) to e)
+                        (conj e [from (str "Нерпавильный формат поля: " to ) (.getMessage ex)]))
+                      ])
                    )))
+
              [to-e []] fme)
 
      ;; Формируеем вывод
@@ -1401,6 +1428,9 @@ $(window).load(function () {
   (-> request :params p-name))
 
 (defn a-hidden-field [request p-name]
+  (hidden-field {} p-name (get-parametr request p-name)))
+
+(defn actus-hidden-field [request p-name]
   (hidden-field {} p-name (get-parametr request p-name)))
 
 (defn actus-hidden-field [params attrs id default-value]
