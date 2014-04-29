@@ -1267,42 +1267,44 @@ $(window).load(function () {
 ;;*
 ;;**************************************************************************************************
 ;; Расскоментировать для тестов и отладки
-(comment
-  (def test-entity {:id 0
-                    :keyname "Keyname entity"
-                    :num 10
-                    :somevalue ""
-                    :description "some description entity...."})
-
-  (def test-form {:ids "1"
-                  :keyname "Keyname form"
-                  :num "100"
-                  :description "some description form ...."})
 
 
-  (def form-<map>-entity
-    [
-     {:e :id
-      :f :ids
-      :f-<-e str
-      :f->-e #(Integer/parseInt %)
-      :e-fn-rm? empty?
-      }
+;; FOR TESTS 
+;; (def test-entity {:id 0
+;;                   :keyname "Keyname entity"
+;;                   :num 10
+;;                   :somevalue ""
+;;                   :description "some description entity...."})
 
-     {:e :keyname
-      :f :keyname
-      :f-<-e str
-      :f->-e str
-      }
+;; (def test-form {:ids "1"
+;;                 :keyname "Keyname form"
+;;                 :num "100"
+;;                 :description "some description form ...."})
 
-     {:e :description
-      :f :description
-      :f-<-e str
-      :f->-e str
-      }
 
-     ])
-  )
+;; (def form-<map>-entity
+;;   [
+;;    {:e :id
+;;     :f :ids
+;;     :f-<-e str
+;;     :f->-e #(Integer/parseInt %)
+;;     :e-fn-rm? empty?
+;;     }
+
+;;    {:e :keyname
+;;     :f :keyname
+;;     :f-<-e str
+;;     :f->-e str
+;;     }
+
+;;    {:e :description
+;;     :f :description
+;;     :f-<-e str
+;;     :f->-e str
+;;     }
+
+;;    ])
+
 
 (defn fill-form-<map>-entity [fme form direction entity]
   (let [[to-k f-conv-k from-k
